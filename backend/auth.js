@@ -68,11 +68,17 @@ router.get("/error", (req, res) => {
   });
 });
 
-// Route, um Benutzerinformationen abzurufen (nach der Authentifizierung)
 router.get("/user", (req, res) => {
-  req.user
-    ? res.json(req.user)
-    : res.status(401).json({ error: "Nicht eingeloggt" });
+  console.log("User session:", req.session.user); // Ausgabe der Session-Benutzerdaten
+
+  // Prüfen, ob der Benutzer in der Session oder im req.user vorhanden ist
+  if (req.user) {
+    return res.json(req.user); // Benutzer wurde durch Passport authentifiziert
+  } else if (req.session.user) {
+    return res.json(req.session.user); // Benutzer in der Session gefunden
+  } else {
+    return res.status(401).json({ error: "Nicht eingeloggt" }); // Kein Benutzer gefunden
+  }
 });
 
 // Fehlerbehandlung (Optional, wenn du Fehler protokollieren möchtest)
