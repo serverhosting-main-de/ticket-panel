@@ -38,13 +38,24 @@ router.get(
   "/discord/callback",
   passport.authenticate("discord", {
     successRedirect: "http://tickets.wonder-craft.de/dashboard", // Frontend-URL nach erfolgreichem Login
-    failureRedirect: "/",
+    failureRedirect: "/auth/error", // Weiterleitung bei Fehler
   }),
   (req, res) => {
     // Zusätzliche Logik nach erfolgreicher Authentifizierung
     console.log("User authenticated:", req.user);
   }
 );
+
+// Fehlerroute: Zeigt detaillierte Fehlermeldung an
+router.get("/error", (req, res) => {
+  // Hier wird ein Fehlerfall ausgelöst, den du im Frontend anzeigen kannst.
+  res
+    .status(500)
+    .json({
+      error:
+        "Es gab einen Fehler bei der Authentifizierung. Bitte versuche es später erneut.",
+    });
+});
 
 // Route, um Benutzerinformationen abzurufen (nach der Authentifizierung)
 router.get("/user", (req, res) => {
@@ -56,7 +67,10 @@ router.get("/user", (req, res) => {
 // Fehlerbehandlung (Optional, wenn du Fehler protokollieren möchtest)
 router.use((err, req, res, next) => {
   console.error("Serverfehler:", err.stack); // Fehler in der Konsole anzeigen
-  res.status(500).send("Etwas ist schiefgelaufen!");
+  res.status(500).json({
+    error: "Etwas ist schiefgelaufen!",
+    message: err.message, // Genauere Fehlermeldung für Debugging
+  });
 });
 
 export default router;
