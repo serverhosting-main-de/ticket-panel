@@ -30,7 +30,7 @@ router.get("/discord", passport.authenticate("discord"));
 router.get(
   "/discord/callback",
   passport.authenticate("discord", {
-    successRedirect: "http://tickets.wonder-craft.de:5173/dashboard", // Frontend-URL nach erfolgreichem Login
+    successRedirect: "http://tickets.wonder-craft.de/dashboard", // Frontend-URL nach erfolgreichem Login
     failureRedirect: "/",
   })
 );
