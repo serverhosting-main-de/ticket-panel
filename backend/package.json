@@ -8,8 +8,8 @@
   },
   "dependencies": {
     "express": "^4.17.1",
-    "passport": "^0.4.1",
-    "passport-discord": "^0.3.0",
+    "passport": "^0.7.0",
+    "passport-discord": "^0.1.4",
     "cookie-session": "^2.0.0",
     "cors": "^2.8.5"
   }

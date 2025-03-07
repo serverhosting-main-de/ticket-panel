@@ -22,7 +22,7 @@ router.get("/", (req, res) => {
     res.json(
       userTickets.map((name) => ({
         name,
-        url: `http://tickets.wonder-craft.de:3000/tickets/${name}`,
+        url: `http://backendtickets.wonder-craft.de/tickets/${name}`,
       }))
     );
   });

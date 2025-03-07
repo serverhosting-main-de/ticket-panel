@@ -34,7 +34,7 @@ export default {
     methods: {
         async fetchUser() {
             // Benutzerinformationen vom Backend abrufen
-            const response = await fetch("http://tickets.wonder-craft.de:3000/auth/user", {
+            const response = await fetch("http://backendtickets.wonder-craft.de/auth/user", {
                 credentials: "include", // Cookies mitschicken für Session
             });
 
@@ -47,7 +47,7 @@ export default {
         },
         async fetchTickets() {
             // Tickets für den eingeloggten Benutzer abrufen
-            const response = await fetch("http://tickets.wonder-craft.de:3000/tickets", {
+            const response = await fetch("http://backendtickets.wonder-craft.de/tickets", {
                 credentials: "include", // Cookies mitschicken für Session
             });
 
@@ -59,7 +59,7 @@ export default {
         },
         loginWithDiscord() {
             // Weiterleitung zur Discord-Login-Seite
-            window.location.href = "http://tickets.wonder-craft.de:3000/auth/discord";
+            window.location.href = "http://backendtickets.wonder-craft.de/auth/discord";
         },
     },
 };

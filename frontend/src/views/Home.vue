@@ -11,7 +11,7 @@ export default {
     methods: {
         loginWithDiscord() {
             // Redirect zum Backend, um die Authentifizierung zu starten
-            window.location.href = "http://tickets.wonder-craft.de:3000/auth/discord";
+            window.location.href = "http://backendtickets.wonder-craft.de/auth/discord";
         },
     },
 };
