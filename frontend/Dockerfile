@@ -7,14 +7,14 @@ WORKDIR /app/frontend
 # Kopiere package.json und package-lock.json (falls vorhanden)
 COPY frontend/package*.json ./
 
-# Installiere die Frontend-Abhängigkeiten
+# Installiere die Abhängigkeiten
 RUN npm install
 
-# Baue das Frontend (für die Produktion)
-RUN npm run build
+# Kopiere den Rest des Frontend-Codes
+COPY frontend/ ./
 
-# Exponiere den Port für das Frontend (5173)
+# Port für Vite-Entwicklungsserver freigeben
 EXPOSE 5173
 
-# Starte das Frontend
+# Starte den Entwicklungsserver mit Netzwerkzugriff
 CMD ["npm", "run", "dev"]
