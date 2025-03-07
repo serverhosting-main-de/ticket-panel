@@ -19,7 +19,7 @@
         <!-- Anzeige der Anmeldeaufforderung, wenn der Benutzer nicht eingeloggt ist -->
         <div v-else>
             <p>Du bist nicht eingeloggt. Bitte melde dich an.</p>
-            <button @click="loginWithDiscord" class="login-button">Mit Discord anmelden</button>
+            <!-- Der Benutzer wird sofort weitergeleitet -->
         </div>
     </div>
 </template>
@@ -43,6 +43,7 @@ export default {
                 this.fetchTickets();
             } else {
                 this.user = null;
+                this.redirectToHome();  // Weiterleitung zur Startseite
             }
         },
         async fetchTickets() {
@@ -63,6 +64,9 @@ export default {
         },
         loginWithDiscord() {
             window.location.href = "http://backendtickets.wonder-craft.de/auth/discord";
+        },
+        redirectToHome() {
+            this.$router.push("/");  // Weiterleitung zur Startseite (Home.vue)
         },
     },
 };
