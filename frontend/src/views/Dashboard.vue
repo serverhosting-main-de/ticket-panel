@@ -33,30 +33,36 @@ export default {
         };
     },
     created() {
-        this.checkUserStatus();  // Überprüft, ob der Benutzer eingeloggt ist
+        this.checkUserStatus(); // Überprüft, ob der Benutzer eingeloggt ist
     },
     methods: {
         async checkUserStatus() {
+            console.log("Überprüfe Benutzerstatus...");
+            // Zunächst prüfen, ob der Benutzer in localStorage gespeichert ist
             const storedUser = localStorage.getItem("user");
             if (storedUser) {
-                this.user = JSON.parse(storedUser); // Setzen des Benutzers aus dem localStorage
+                this.user = JSON.parse(storedUser); // Benutzerdaten aus localStorage setzen
                 this.fetchTickets();
             } else {
-                this.user = null;
-                this.storeUserData();  // Wenn der Benutzer nicht im localStorage ist, versuche, Benutzerdaten zu holen
+                // Wenn nicht im localStorage, versuchen, Benutzerdaten vom Backend zu erhalten
+                await this.storeUserData();
             }
         },
 
         async storeUserData() {
+            console.log("Versuche, Benutzerdaten vom Backend zu erhalten...");
             try {
                 const response = await fetch("http://backendtickets.wonder-craft.de/auth/user", {
                     credentials: "include", // Mit Cookies/Anmeldeinformationen senden
                 });
 
+                console.log("Antwort vom Backend:", response);
                 if (response.ok) {
                     const user = await response.json();
-                    this.user = user; // Setzen der Benutzerdaten im Komponentenstatus
-                    localStorage.setItem("user", JSON.stringify(user));  // Speichern der Benutzerdaten im localStorage
+                    console.log("Benutzerdaten erhalten:", user);
+                    this.user = user; // Benutzerdaten im Komponentenstatus setzen
+                    localStorage.setItem("user", JSON.stringify(user)); // Speichern der Benutzerdaten im localStorage
+                    console.log("Benutzerdaten erfolgreich gespeichert");
                 } else {
                     console.log("Fehler beim Abrufen der Benutzerdaten");
                 }
@@ -87,7 +93,7 @@ export default {
         },
 
         redirectToHome() {
-            this.$router.push("/");  // Weiterleitung zur Startseite (Home.vue)
+            this.$router.push("/"); // Weiterleitung zur Startseite (Home.vue)
         },
     },
 };

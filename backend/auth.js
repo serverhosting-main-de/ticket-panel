@@ -2,8 +2,23 @@ import { Router } from "express";
 import passport from "passport";
 import { Strategy as DiscordStrategy } from "passport-discord";
 import { config } from "./config.js";
+import session from "express-session";
 
 const router = Router();
+
+// Session konfigurieren
+router.use(
+  session({
+    secret: "super-secret-key", // Ändere das zu einem geheimen Schlüssel
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax", // Notwendig für CORS und Cookies
+    },
+  })
+);
 
 // Discord-Strategie für Passport
 passport.use(
@@ -17,11 +32,8 @@ passport.use(
       scope: config.discord.scope,
     },
     (accessToken, refreshToken, profile, done) => {
-      // Protokolliere das erhaltene Profil
       console.log("AccessToken:", accessToken);
       console.log("Profile:", profile);
-
-      // Hier kannst du zusätzliche Logik hinzufügen, wie das Speichern des Profils in einer Datenbank
       return done(null, profile);
     }
   )
@@ -37,24 +49,23 @@ router.get("/discord", passport.authenticate("discord"));
 router.get(
   "/discord/callback",
   passport.authenticate("discord", {
-    successRedirect: "http://tickets.wonder-craft.de/dashboard", // Frontend-URL nach erfolgreichem Login
     failureRedirect: "/auth/error", // Weiterleitung bei Fehler
   }),
   (req, res) => {
-    // Zusätzliche Logik nach erfolgreicher Authentifizierung
+    req.session.user = req.user; // Benutzer in der Session speichern
     console.log("User authenticated:", req.user);
+
+    // Weiterleitung zur Frontend-URL (z.B. Dashboard)
+    res.redirect("http://tickets.wonder-craft.de/dashboard");
   }
 );
 
 // Fehlerroute: Zeigt detaillierte Fehlermeldung an
 router.get("/error", (req, res) => {
-  // Hier wird ein Fehlerfall ausgelöst, den du im Frontend anzeigen kannst.
-  res
-    .status(500)
-    .json({
-      error:
-        "Es gab einen Fehler bei der Authentifizierung. Bitte versuche es später erneut.",
-    });
+  res.status(500).json({
+    error:
+      "Es gab einen Fehler bei der Authentifizierung. Bitte versuche es später erneut.",
+  });
 });
 
 // Route, um Benutzerinformationen abzurufen (nach der Authentifizierung)
@@ -66,10 +77,10 @@ router.get("/user", (req, res) => {
 
 // Fehlerbehandlung (Optional, wenn du Fehler protokollieren möchtest)
 router.use((err, req, res, next) => {
-  console.error("Serverfehler:", err.stack); // Fehler in der Konsole anzeigen
+  console.error("Serverfehler:", err.stack);
   res.status(500).json({
     error: "Etwas ist schiefgelaufen!",
-    message: err.message, // Genauere Fehlermeldung für Debugging
+    message: err.message,
   });
 });
 
