@@ -14,7 +14,7 @@ const app = express();
 // CORS-Konfiguration (sicherstellen, dass die richtige Origin zugelassen wird)
 app.use(
   cors({
-    origin: "http://tickets.wonder-craft.de", // Frontend-Origin
+    origin: process.env.FRONTEND_ORIGIN || "http://tickets.wonder-craft.de", // Umgebungsvariable für Frontend-Origin
     credentials: true,
   })
 );
