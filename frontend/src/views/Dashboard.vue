@@ -93,7 +93,8 @@ export default {
         },
 
         redirectToHome() {
-            this.$router.push("/"); // Weiterleitung zur Startseite (Home.vue)
+            // this.$router.push("/"); // Weiterleitung zur Startseite (Home.vue)
+            console.log("Weiterleitung zur Startseite");
         },
     },
 };

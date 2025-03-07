@@ -6,6 +6,9 @@
 
             <!-- Zeige Login-Button nur, wenn der Benutzer nicht eingeloggt ist -->
             <button v-if="!user" @click="loginWithDiscord" class="login-button">Mit Discord anmelden</button>
+            <div v-else>
+                <p>Du bist bereits eingeloggt. Weiterleitung zum Dashboard...</p>
+            </div>
         </div>
     </div>
 </template>
