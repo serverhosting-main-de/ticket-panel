@@ -3,8 +3,23 @@ const express = require("express");
 const axios = require("axios");
 const session = require("express-session");
 const cors = require("cors");
+const { Client, GatewayIntentBits } = require("discord.js");
+const fs = require("fs").promises;
+const path = require("path");
+
 const app = express();
 const port = 3000;
+
+// Discord-Bot initialisieren
+const client = new Client({
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
+});
+
+client.once("ready", () => {
+  console.log(`Discord-Bot eingeloggt als ${client.user.tag}!`);
+});
+
+client.login(process.env.DISCORD_TOKEN);
 
 // CORS-Konfiguration
 app.use(
@@ -82,6 +97,50 @@ app.get("/callback", async (req, res) => {
         .status(500)
         .send("Authentifizierung fehlgeschlagen: " + error.message);
     }
+  }
+});
+
+// Rolle prüfen
+app.get("/check-role/:userId", async (req, res) => {
+  const { userId } = req.params;
+  const guildId = process.env.GUILD_ID;
+  const requiredRoleName = process.env.REQUIRED_ROLE;
+
+  try {
+    const guild = await client.guilds.fetch(guildId);
+    const member = await guild.members.fetch(userId);
+
+    if (member) {
+      const hasRequiredRole = member.roles.cache.some(
+        (role) => role.name === requiredRoleName
+      );
+      res.json({ hasRole: hasRequiredRole });
+    } else {
+      res.status(404).json({ error: "Benutzer nicht gefunden." });
+    }
+  } catch (error) {
+    console.error("Fehler beim Abrufen der Benutzerrolle:", error);
+    res.status(500).json({ error: "Serverfehler." });
+  }
+});
+
+// Ticket-Dateien abrufen
+app.get("/tickets", async (req, res) => {
+  const ticketsDir = "/app/tickets";
+
+  try {
+    const files = await fs.readdir(ticketsDir);
+    const ticketFiles = files.filter((file) => file.endsWith(".html"));
+    const tickets = ticketFiles.map((file) => ({
+      fileName: file,
+      title: file.replace(".html", "").replace(/_/g, " "), // Beispiel: Dateinamen in Titel umwandeln
+      date: new Date().toLocaleDateString(), // Beispiel: Aktuelles Datum als Datum
+    }));
+
+    res.json(tickets);
+  } catch (error) {
+    console.error("Fehler beim Lesen der Ticket-Dateien:", error);
+    res.status(500).json({ error: "Serverfehler." });
   }
 });
 

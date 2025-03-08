@@ -7,7 +7,9 @@ services:
     ports:
       - "3000:3000"
     env_file:
-      - ./backend/.env # Hier wird die .env-Datei angegeben
+      - ./backend/.env
+    volumes:
+      - /home/dcbot/tickets:/app/tickets  # Hier wird das Volume-Mount hinzugefügt
     networks:
       - app-network
   frontend:

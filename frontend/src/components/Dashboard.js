@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import styled from "styled-components";
+import axios from "axios";
 
 // Styled Components für das Design
 const DashboardContainer = styled.div`
@@ -43,6 +44,9 @@ function Dashboard() {
   const userId = searchParams.get("userId");
   const avatar = searchParams.get("avatar");
   const [tickets, setTickets] = useState([]);
+  const [hasRole, setHasRole] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!username) {
@@ -50,24 +54,50 @@ function Dashboard() {
       return;
     }
 
-    // Daten im localStorage speichern
     localStorage.setItem("username", username);
     localStorage.setItem("loggedIn", "true");
     localStorage.setItem("userId", userId);
     localStorage.setItem("avatar", avatar);
 
-    const exampleTickets = [
-      { id: 1, title: "Problem mit Login", date: "2023-10-26" },
-      { id: 2, title: "Frage zu Account-Einstellungen", date: "2023-10-25" },
-    ];
-    setTickets(exampleTickets);
+    if (userId) {
+      Promise.all([
+        axios.get(
+          `https://backendtickets.wonder-craft.de/check-role/${userId}`
+        ),
+        axios.get("https://backendtickets.wonder-craft.de/tickets"),
+      ])
+        .then(([roleResponse, ticketsResponse]) => {
+          setHasRole(roleResponse.data.hasRole);
+          let fetchedTickets = ticketsResponse.data;
+          if (!roleResponse.data.hasRole && userId) {
+            fetchedTickets = fetchedTickets.filter((ticket) =>
+              ticket.fileName.includes(userId)
+            );
+          }
+          setTickets(fetchedTickets);
+          setLoading(false);
+        })
+        .catch((error) => {
+          console.error("Fehler beim Laden der Daten:", error);
+          setError(
+            "Fehler beim Laden der Daten. Bitte versuche es später noch einmal."
+          );
+          setLoading(false);
+        });
+    }
   }, [username, userId, avatar, navigate]);
 
-  // Funktion zum Öffnen des Ticket-Chatverlaufs
-  const openTicketChat = (ticketId) => {
-    // Hier sollte die Weiterleitung zu deinem HTML-Chatverlauf erfolgen
-    window.location.href = `/ticket-chat/${ticketId}.html`;
+  const openTicketChat = (ticketFileName) => {
+    window.location.href = `/ticket-chat/${ticketFileName}.html`;
   };
+
+  if (loading) {
+    return <DashboardContainer>Lade Daten...</DashboardContainer>;
+  }
+
+  if (error) {
+    return <DashboardContainer>{error}</DashboardContainer>;
+  }
 
   return (
     <DashboardContainer>
@@ -76,14 +106,29 @@ function Dashboard() {
         <h1>Willkommen im Dashboard, {username}!</h1>
       </UserInfo>
 
+      {hasRole !== null && (
+        <p>
+          {hasRole
+            ? "Du hast Admin/Supporter Rechte."
+            : "Du hast Benutzer Rechte."}
+        </p>
+      )}
+
       <h2>Deine Tickets</h2>
-      <TicketList>
-        {tickets.map((ticket) => (
-          <TicketItem key={ticket.id} onClick={() => openTicketChat(ticket.id)}>
-            {ticket.title} ({ticket.date})
-          </TicketItem>
-        ))}
-      </TicketList>
+      {tickets.length > 0 ? (
+        <TicketList>
+          {tickets.map((ticket) => (
+            <TicketItem
+              key={ticket.id}
+              onClick={() => openTicketChat(ticket.fileName)}
+            >
+              {ticket.title} ({ticket.date})
+            </TicketItem>
+          ))}
+        </TicketList>
+      ) : (
+        <p>Keine Tickets gefunden.</p>
+      )}
     </DashboardContainer>
   );
 }
