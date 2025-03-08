@@ -8,8 +8,8 @@ WORKDIR /app
 # package.json und package-lock.json kopieren
 COPY package*.json ./
 
-# Abhängigkeiten installieren (Cache nutzen)
-RUN npm ci --force
+# Abhängigkeiten installieren und package-lock.json erstellen
+RUN npm install
 
 # Quellcode kopieren
 COPY . ./
