@@ -7,10 +7,12 @@ export default defineConfig({
     host: "0.0.0.0",
     port: 5173,
     strictPort: true,
-    hmr: false,
+    hmr: {
+      clientPort: 80, // Port des Nginx Reverse Proxys
+    },
     watch: {
       usePolling: true,
     },
-    allowedHosts: ["tickets.wonder-craft.de"], // wieder hinzugefügt
+    allowedHosts: ["tickets.wonder-craft.de"],
   },
 });
