@@ -4,12 +4,12 @@ import vue from "@vitejs/plugin-vue";
 export default defineConfig({
   plugins: [vue()],
   server: {
-    host: "0.0.0.0", // Erlaubt Zugriff   ber das Netzwerk
-    port: 5173, // Setzt den Port fest
-    strictPort: true, // Verhindert, dass Vite auf einen anderen Port ausweicht
+    host: "0.0.0.0",
+    port: 5173,
+    strictPort: true,
+    hmr: false, // HMR deaktivieren
     watch: {
-      usePolling: true, // Hilft bei Datei  nderungen in Docker-Containern
+      usePolling: true,
     },
-    allowedHosts: ["tickets.wonder-craft.de"],
   },
 });
