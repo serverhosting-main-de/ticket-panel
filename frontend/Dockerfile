@@ -1,20 +1,13 @@
-# Basis-Image für das Frontend
-FROM node:22.6.0
-
-# Arbeitsverzeichnis für das Frontend festlegen
+# Build-Stage: Frontend-Assets für die Produktion erstellen
+FROM node:22.6.0 AS build
 WORKDIR /app/frontend
-
-# Kopiere package.json und package-lock.json (falls vorhanden)
 COPY frontend/package*.json ./
-
-# Installiere die Abhängigkeiten
 RUN npm install
-
-# Kopiere den Rest des Frontend-Codes
 COPY frontend/ ./
+RUN npm run build # Oder dein Build-Skript
 
-# Port für Vite-Entwicklungsserver freigeben
+# Nginx-Stage: Statische Assets mit Nginx ausliefern
+FROM nginx:alpine
+COPY --from=build /app/frontend/dist /usr/share/nginx/html
 EXPOSE 5173
-
-# Starte den Entwicklungsserver mit Netzwerkzugriff
-CMD ["npm", "run", "dev"]
+CMD ["nginx", "-g", "daemon off;"]
