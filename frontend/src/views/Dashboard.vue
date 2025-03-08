@@ -8,6 +8,7 @@
 
         <div v-else-if="error">
             <p>{{ error }}</p>
+            <button @click="redirectToLogin">Zum Login</button>
         </div>
 
         <div v-else-if="user">
@@ -25,6 +26,7 @@
 
         <div v-else>
             <p>Du bist nicht eingeloggt. Bitte melde dich an.</p>
+            <button @click="redirectToLogin">Zum Login</button>
         </div>
     </div>
 </template>
@@ -49,20 +51,43 @@ export default {
             this.isLoading = true;
             this.error = null;
             try {
-                const token = document.cookie.replace(/(?:(?:^|.*;\s*)token\s*\=\s*([^;]*).*$)|^.*$/, "$1"); // Cookie abrufen
+                const token = this.getCookie("token");
                 if (token) {
-                    const response = await fetch("http://backendtickets.wonder-craft.de/auth/user", {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    });
-                    if (response.ok) {
-                        this.user = await response.json();
-                        await this.fetchTickets();
-                    } else {
-                        console.error("Fehler beim Abrufen der Benutzerdaten:", response.status, response.statusText);
-                        this.error = "Fehler beim Laden der Benutzerdaten.";
+                    try {
+                        // Versuche, das JWT zu dekodieren (optional, zur Überprüfung)
+                        const decodedToken = JSON.parse(atob(token.split(".")[1]));
+                        console.log("Dekodiertes JWT:", decodedToken);
+
+                        // Überprüfe das Ablaufdatum des JWT (optional)
+                        if (decodedToken.exp * 1000 < Date.now()) {
+                            throw new Error("JWT ist abgelaufen.");
+                        }
+
+                        // JWT ist gültig, fahre mit dem Abrufen der Benutzerdaten fort
+                        const response = await fetch("http://backendtickets.wonder-craft.de/auth/user", {
+                            headers: {
+                                Authorization: `Bearer ${token}`,
+                            },
+                        });
+                        if (response.ok) {
+                            this.user = await response.json();
+                            await this.fetchTickets();
+                        } else {
+                            const errorData = await response.json();
+                            console.error(
+                                "Fehler beim Abrufen der Benutzerdaten:",
+                                response.status,
+                                response.statusText,
+                                errorData.message
+                            );
+                            this.error = `Fehler beim Laden der Benutzerdaten: ${errorData.message}`;
+                        }
+                    } catch (jwtError) {
+                        console.error("JWT-Fehler:", jwtError);
+                        this.error = "Ungültiges oder abgelaufenes JWT. Bitte melde dich erneut an.";
                     }
+                } else {
+                    this.error = "Nicht autorisiert. Bitte melde dich an.";
                 }
             } catch (err) {
                 console.error("Fehler beim Überprüfen des Benutzerstatus:", err);
@@ -74,7 +99,7 @@ export default {
         async fetchTickets() {
             console.log("Lade Tickets...");
             try {
-                const token = document.cookie.replace(/(?:(?:^|.*;\s*)token\s*\=\s*([^;]*).*$)|^.*$/, "$1"); // Cookie abrufen
+                const token = this.getCookie("token");
                 const response = await fetch("http://backendtickets.wonder-craft.de/tickets", {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -83,13 +108,24 @@ export default {
                 if (response.ok) {
                     this.tickets = await response.json();
                 } else {
-                    console.error("Fehler beim Abrufen der Tickets:", response.status, response.statusText);
-                    this.error = "Fehler beim Laden der Tickets.";
+                    const errorData = await response.json();
+                    console.error(
+                        "Fehler beim Abrufen der Tickets:",
+                        response.status,
+                        response.statusText,
+                        errorData.message
+                    );
+                    this.error = `Fehler beim Laden der Tickets: ${errorData.message}`;
                 }
             } catch (err) {
                 console.error("Fehler beim Abrufen der Tickets:", err);
                 this.error = "Fehler beim Laden der Tickets.";
             }
+        },
+        getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(";").shift();
         },
         redirectToLogin() {
             window.location.href = "http://tickets.wonder-craft.de/";
