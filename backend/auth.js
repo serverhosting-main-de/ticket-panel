@@ -7,7 +7,6 @@ import configurePassport from "./passportConfig.js";
 
 const router = Router();
 
-// Sichere Session-Konfiguration (wird nur noch für die initiale Discord-Authentifizierung verwendet)
 router.use(
   session({
     secret: config.session.secret,
@@ -15,7 +14,7 @@ router.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: false,
       sameSite: "Lax",
       maxAge: 24 * 60 * 60 * 1000,
     },
@@ -23,27 +22,28 @@ router.use(
   })
 );
 
-// Passport-Konfiguration
 configurePassport();
 router.use(passport.initialize());
 router.use(passport.session());
 
-// JWT-Verifizierungs-Middleware
 const verifyToken = (req, res, next) => {
-  const token = req.cookies.token; // JWT aus dem Cookie abrufen
+  const token = req.cookies.token;
   if (!token) {
-    return res.status(401).json({ error: "Nicht autorisiert" });
+    return res
+      .status(401)
+      .json({ error: "Nicht autorisiert", details: "Kein Token gefunden" });
   }
   try {
     const decoded = jwt.verify(token, config.jwtSecret);
     req.user = decoded;
     next();
   } catch (error) {
-    return res.status(401).json({ error: "Ungültiges Token" });
+    return res
+      .status(401)
+      .json({ error: "Ungültiges Token", details: error.message });
   }
 };
 
-// Authentifizierungs-Routen
 router.get("/discord", passport.authenticate("discord"));
 
 router.get(
@@ -57,11 +57,11 @@ router.get(
         id: req.user.id,
         username: req.user.username,
       };
-      const token = jwt.sign(payload, config.jwtSecret, { expiresIn: "1h" }); // JWT erstellen
+      const token = jwt.sign(payload, config.jwtSecret, { expiresIn: "1h" });
       res.cookie("token", token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-      }); // JWT als Cookie senden
+        secure: false,
+      });
       res.redirect("http://tickets.wonder-craft.de/dashboard");
     } catch (error) {
       console.error(
@@ -75,12 +75,14 @@ router.get(
 
 router.get("/user", verifyToken, (req, res) => {
   try {
-    return res.json(req.user); // Benutzerdaten aus dem verifizierten Token senden
+    return res.json(req.user);
   } catch (error) {
     console.error("Fehler beim Abrufen der Benutzerdaten:", error);
-    res
-      .status(500)
-      .json({ error: "Interner Serverfehler", message: error.message });
+    res.status(500).json({
+      error: "Interner Serverfehler",
+      message: error.message,
+      stack: error.stack,
+    });
   }
 });
 
@@ -88,10 +90,10 @@ router.get("/error", (req, res) => {
   res.status(500).json({
     error: "Authentifizierungsfehler",
     message: "Fehler bei der Authentifizierung",
+    details: "Ein Fehler ist während der Authentifizierung aufgetreten",
   });
 });
 
-// Globale Fehlerbehandlung
 router.use((err, req, res, next) => {
   console.error("Serverfehler:", err.stack);
   res.status(500).json({

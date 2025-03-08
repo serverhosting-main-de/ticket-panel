@@ -55,19 +55,24 @@ const verifyToken = (req, res, next) => {
     req.user = decoded;
     next();
   } catch (error) {
-    return res.status(401).json({ error: "Ungültiges Token" });
+    return res
+      .status(401)
+      .json({ error: "Ungültiges Token", message: error.message }); // Fehlerdetails hinzufügen
   }
 };
 
 // Routen
 app.use("/auth", authRoutes);
-app.use("/tickets", verifyToken, ticketRoutes); // JWT-Verifizierung für Ticket-Routen
+app.use("/tickets", verifyToken, ticketRoutes);
 
+// Fehlerbehandlung mit detaillierten Fehlermeldungen
 app.use((err, req, res, next) => {
-  console.error("Serverfehler:", err.stack);
-  res
-    .status(500)
-    .json({ error: "Interner Serverfehler", message: err.message });
+  console.error("Serverfehler:", err); // Fehlerobjekt ausgeben, nicht nur err.stack
+  res.status(500).json({
+    error: "Interner Serverfehler",
+    message: err.message, // Fehlermeldung
+    stack: process.env.NODE_ENV === "development" ? err.stack : undefined, // Stack-Trace nur im Entwicklungsmodus
+  });
 });
 
 const port = config.server.port || 3000;
