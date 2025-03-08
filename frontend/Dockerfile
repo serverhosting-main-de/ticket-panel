@@ -6,8 +6,10 @@ RUN npm install
 COPY frontend/ ./
 RUN npm run build # Oder dein Build-Skript
 
-# Nginx-Stage: Statische Assets mit Nginx ausliefern
-FROM nginx:alpine
-COPY --from=build /app/frontend/dist /usr/share/nginx/html
+# Serve-Stage: Statische Assets mit Node.js ausliefern
+FROM node:22.6.0
+WORKDIR /app
+COPY --from=build /app/frontend/dist /app/dist
+RUN npm install -g serve
 EXPOSE 5173
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["serve", "-s", "dist", "-l", "5173"]
