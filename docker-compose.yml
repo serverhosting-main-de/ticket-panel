@@ -8,8 +8,6 @@ services:
     container_name: backend-container
     ports:
       - "3000:3000"
-    environment:
-      - NODE_ENV=development
     depends_on:
       - frontend
 
@@ -20,5 +18,3 @@ services:
     container_name: frontend-container
     ports:
       - "5173:5173"
-    environment:
-      - NODE_ENV=development

@@ -29,7 +29,7 @@ app.use(
     saveUninitialized: false, // Sitzungen nicht speichern, wenn sie nicht initialisiert wurden
     cookie: {
       httpOnly: true, // Sicherheitseinstellung für Cookies
-      secure: process.env.NODE_ENV === "production", // Nur in der Produktion sichere Cookies verwenden (HTTPS)
+      secure: false, // Nur in der Produktion sichere Cookies verwenden (HTTPS)
       maxAge: 24 * 60 * 60 * 1000, // 24 Stunden Lebensdauer für die Session
     },
   })

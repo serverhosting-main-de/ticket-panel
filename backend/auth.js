@@ -14,7 +14,7 @@ router.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: false,
       sameSite: "Lax", // Notwendig für CORS und Cookies
     },
   })
