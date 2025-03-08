@@ -74,8 +74,8 @@ router.get(
       console.log("Session:", req.session);
       console.log("Weiterleitung nach /dashboard");
       window.localStorage.setItem("user", JSON.stringify(req.user));
+      res.redirect("http://tickets.wonder-craft.de/dashboard");
       window.location.href = "http://tickets.wonder-craft.de/dashboard";
-      res.end();
     } catch (error) {
       console.error(
         "Fehler bei der Weiterleitung nach der Authentifizierung:",
