@@ -1,25 +1,26 @@
-# Verwende ein offizielles Node.js-Image als Basis für das Frontend
-FROM node:22.6.0-alpine as build
+# Mehrstufiger Build zur Optimierung der Image-Größe
 
-# Arbeitsverzeichnis im Container erstellen und festlegen
+# 1. Build-Phase: Abhängigkeiten installieren und Anwendung bauen
+FROM node:22.6.0-alpine AS build
+
 WORKDIR /app
 
-# package.json und package-lock.json in das Arbeitsverzeichnis kopieren
+# package.json und package-lock.json kopieren
 COPY package*.json ./
 
-# Abhängigkeiten installieren
-RUN npm install
+# Abhängigkeiten installieren (Cache nutzen)
+RUN npm ci --force
 
-# Den gesamten Quellcode in das Arbeitsverzeichnis kopieren
-COPY . .
+# Quellcode kopieren
+COPY . ./
 
-# Build-Prozess (für React)
+# Anwendung bauen
 RUN npm run build
 
-# Verwende ein leichtgewichtiges Nginx-Image für die Bereitstellung
+# 2. Produktionsphase: Nginx-Server bereitstellen
 FROM nginx:alpine
 
-# Kopiere die Build-Ausgabe von der vorherigen Stufe
+# Build-Artefakte von der Build-Phase kopieren
 COPY --from=build /app/build /usr/share/nginx/html
 
 # Nginx-Konfiguration kopieren (falls erforderlich)
