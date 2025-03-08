@@ -1,81 +1,77 @@
-import express from "express";
-import cors from "cors";
-import session from "express-session";
-import passport from "passport";
-import jwt from "jsonwebtoken";
-import { config } from "./config.js";
-import authRoutes from "./auth.js";
-import ticketRoutes from "./tickets.js";
-import { fileURLToPath } from "url";
-import { dirname } from "path";
-import helmet from "helmet";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+require("dotenv").config();
+const express = require("express");
+const axios = require("axios");
+const session = require("express-session");
+const cors = require("cors");
 
 const app = express();
-
-app.use(helmet());
+const port = 3000;
 
 app.use(
   cors({
-    origin: "http://tickets.wonder-craft.de",
+    origin: "https://tickets.wonder-craft.de",
     credentials: true,
   })
 );
 
-app.use(express.json());
-
 app.use(
   session({
-    secret: config.session.secret,
+    secret: process.env.SESSION_SECRET,
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true,
     cookie: {
+      secure: "auto", // oder true in production
+      sameSite: "none",
       httpOnly: true,
-      secure: false,
-      sameSite: "Lax",
-      maxAge: 24 * 60 * 60 * 1000,
     },
-    proxy: true,
   })
 );
 
-app.use(passport.initialize());
-app.use(passport.session());
-
-// JWT-Verifizierungs-Middleware
-const verifyToken = (req, res, next) => {
-  const token = req.cookies.token;
-  if (!token) {
-    return res.status(401).json({ error: "Nicht autorisiert" });
-  }
-  try {
-    const decoded = jwt.verify(token, config.jwtSecret);
-    req.user = decoded;
-    next();
-  } catch (error) {
-    return res
-      .status(401)
-      .json({ error: "Ungültiges Token", message: error.message }); // Fehlerdetails hinzufügen
-  }
-};
-
-// Routen
-app.use("/auth", authRoutes);
-app.use("/tickets", verifyToken, ticketRoutes);
-
-// Fehlerbehandlung mit detaillierten Fehlermeldungen
-app.use((err, req, res, next) => {
-  console.error("Serverfehler:", err); // Fehlerobjekt ausgeben, nicht nur err.stack
-  res.status(500).json({
-    error: "Interner Serverfehler",
-    message: err.message, // Fehlermeldung
-    stack: process.env.NODE_ENV === "development" ? err.stack : undefined, // Stack-Trace nur im Entwicklungsmodus
-  });
+app.get("/login", (req, res) => {
+  const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${process.env.DISCORD_CLIENT_ID}&redirect_uri=https%3A%2F%2Fbackendtickets.wonder-craft.de%2Fcallback&response_type=code&scope=identify`;
+  res.redirect(discordAuthUrl);
 });
 
-const port = config.server.port || 3000;
+app.get("/callback", async (req, res) => {
+  const { code } = req.query;
+
+  try {
+    const tokenResponse = await axios.post(
+      "https://discord.com/api/oauth2/token",
+      new URLSearchParams({
+        client_id: process.env.DISCORD_CLIENT_ID,
+        client_secret: process.env.DISCORD_CLIENT_SECRET,
+        code,
+        grant_type: "authorization_code",
+        redirect_uri: "https://backendtickets.wonder-craft.de/callback",
+      }),
+      {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      }
+    );
+
+    const { access_token } = tokenResponse.data;
+
+    const userResponse = await axios.get("https://discord.com/api/users/@me", {
+      headers: { authorization: `Bearer ${access_token}` },
+    });
+
+    req.session.userId = userResponse.data.id;
+    req.session.username = userResponse.data.username;
+
+    res.redirect(
+      `https://tickets.wonder-craft.de/?userId=${req.session.userId}&username=${req.session.username}`
+    );
+  } catch (error) {
+    console.error("Discord-Authentifizierung fehlgeschlagen:", error.message);
+    if (error.response && error.response.status === 401) {
+      res.status(401).send("Ungültige Anmeldeinformationen");
+    } else {
+      res.status(500).send("Authentifizierung fehlgeschlagen");
+    }
+  }
+});
+
 app.listen(port, () => {
-  console.log(`Backend läuft auf http://localhost:${port}`);
+  console.log(`Backend läuft auf Port ${port}`);
 });

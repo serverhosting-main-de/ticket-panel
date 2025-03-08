@@ -1,15 +1,32 @@
-# Build-Stage: Frontend-Assets für die Produktion erstellen
-FROM node:22.6.0 AS build
-WORKDIR /app/frontend
-COPY frontend/package*.json ./
-RUN npm install
-COPY frontend/ ./
-RUN npm run build # Oder dein Build-Skript
+# Verwende ein offizielles Node.js-Image als Basis für das Frontend
+FROM node:22.6.0-alpine as build
 
-# Serve-Stage: Statische Assets mit Node.js ausliefern
-FROM node:22.6.0
+# Arbeitsverzeichnis im Container erstellen und festlegen
 WORKDIR /app
-COPY --from=build /app/frontend/dist /app/dist
-RUN npm install -g serve
+
+# package.json und package-lock.json in das Arbeitsverzeichnis kopieren
+COPY package*.json ./
+
+# Abhängigkeiten installieren
+RUN npm install
+
+# Den gesamten Quellcode in das Arbeitsverzeichnis kopieren
+COPY . .
+
+# Build-Prozess (für React)
+RUN npm run build
+
+# Verwende ein leichtgewichtiges Nginx-Image für die Bereitstellung
+FROM nginx:alpine
+
+# Kopiere die Build-Ausgabe von der vorherigen Stufe
+COPY --from=build /app/build /usr/share/nginx/html
+
+# Nginx-Konfiguration kopieren (falls erforderlich)
+# COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Port freigeben
 EXPOSE 5173
-CMD ["serve", "-s", "dist", "-l", "5173"]
+
+# Nginx starten
+CMD ["nginx", "-g", "daemon off;"]

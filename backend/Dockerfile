@@ -1,20 +1,22 @@
-# Basis-Image für das Backend
-FROM node:22.6.0
+# Verwende Node.js 22.6.0 als Basis-Image
+FROM node:22.6.0-alpine
 
-# Arbeitsverzeichnis für das Backend festlegen
-WORKDIR /app/backend
+# Arbeitsverzeichnis im Container erstellen und festlegen
+WORKDIR /app
 
-# Kopiere package.json und package-lock.json (falls vorhanden)
-COPY backend/package*.json ./
+# package.json und package-lock.json in das Arbeitsverzeichnis kopieren
+COPY package*.json ./
 
-# Installiere die Backend-Abhängigkeiten
+# Abhängigkeiten installieren
 RUN npm install
 
-# Kopiere den gesamten Backend-Code
-COPY backend/ .
+# Den gesamten Quellcode in das Arbeitsverzeichnis kopieren
+COPY . .
 
-# Exponiere den Port für das Backend (3000)
+# Umgebungsvariablen werden jetzt von Docker Compose geladen (env_file)
+
+# Port 3000 freigeben, auf dem die Anwendung läuft
 EXPOSE 3000
 
-# Starte das Backend
-CMD ["npm", "start"]
+# Anwendung starten
+CMD ["node", "server.js"]
