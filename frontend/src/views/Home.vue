@@ -32,6 +32,7 @@ export default {
         };
     },
     created() {
+        console.log("Home wird geladen...");
         this.checkUserStatus(); // Überprüft den Benutzerstatus beim Laden der Komponente
     },
     methods: {
