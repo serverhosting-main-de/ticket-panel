@@ -33,6 +33,7 @@ export default {
         };
     },
     created() {
+        console.log("Dashboard wird geladen...");
         this.checkUserStatus(); // Überprüft, ob der Benutzer eingeloggt ist
     },
     methods: {

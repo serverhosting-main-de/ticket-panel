@@ -1,12 +1,15 @@
 import express from "express";
 import cors from "cors";
-import session from "express-session"; // importiere express-session
+import session from "express-session";
 import passport from "passport";
 import { config } from "./config.js";
-
-// Importiere die Authentifizierungs- und Ticket-Routen
 import authRoutes from "./auth.js";
 import ticketRoutes from "./tickets.js";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 
@@ -25,12 +28,13 @@ app.use(express.json());
 app.use(
   session({
     secret: config.session.secret, // Geheimschlüssel aus der Konfiguration
-    resave: false, // Sitzungen nicht erneut speichern, wenn sie nicht geändert wurden
-    saveUninitialized: false, // Sitzungen nicht speichern, wenn sie nicht initialisiert wurden
+    resave: false,
+    saveUninitialized: false,
     cookie: {
-      httpOnly: true, // Sicherheitseinstellung für Cookies
-      secure: false, // Nur in der Produktion sichere Cookies verwenden (HTTPS)
-      maxAge: 24 * 60 * 60 * 1000, // 24 Stunden Lebensdauer für die Session
+      httpOnly: true,
+      secure: false, // Beibehalten von 'false' für HTTP
+      sameSite: "Lax",
+      maxAge: 24 * 60 * 60 * 1000, // 24 Stunden
     },
   })
 );
@@ -39,21 +43,20 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Authentifizierungs-Routen
+// Routen
 app.use("/auth", authRoutes);
-
-// Ticket-Routen
 app.use("/tickets", ticketRoutes);
 
-// Fehlerbehandlung (falls Fehler bei den Routen auftreten)
+// Fehlerbehandlung
 app.use((err, req, res, next) => {
   console.error("Serverfehler:", err.stack);
   res
     .status(500)
-    .json({ error: "Etwas ist schiefgelaufen!", message: err.message });
+    .json({ error: "Interner Serverfehler", message: err.message });
 });
 
 // Server starten
-app.listen(config.server.port, () => {
-  console.log(`Backend läuft auf http://localhost:${config.server.port}`);
+const port = config.server.port || 3000;
+app.listen(port, () => {
+  console.log(`Backend läuft auf http://localhost:${port}`);
 });
