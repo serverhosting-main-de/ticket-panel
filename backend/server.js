@@ -60,7 +60,7 @@ app.get("/callback", async (req, res) => {
     req.session.username = userResponse.data.username;
 
     res.redirect(
-      `https://tickets.wonder-craft.de/?userId=${req.session.userId}&username=${req.session.username}`
+      `https://tickets.wonder-craft.de/dashboard/?userId=${req.session.userId}&username=${req.session.username}&avatar=${userResponse.data.avatar}`
     );
   } catch (error) {
     console.error("Discord-Authentifizierung fehlgeschlagen:", error.message);
