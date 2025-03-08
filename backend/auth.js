@@ -70,7 +70,12 @@ router.get(
   (req, res) => {
     try {
       req.session.user = req.user;
-      res.redirect("http://tickets.wonder-craft.de/dashboard");
+      console.log("Benutzerdaten:", req.user);
+      console.log("Session:", req.session);
+      console.log("Weiterleitung nach /dashboard");
+      window.localStorage.setItem("user", JSON.stringify(req.user));
+      window.location.href = "http://tickets.wonder-craft.de/dashboard";
+      res.end();
     } catch (error) {
       console.error(
         "Fehler bei der Weiterleitung nach der Authentifizierung:",
