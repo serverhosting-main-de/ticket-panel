@@ -2,7 +2,6 @@
     <div class="dashboard-container">
         <h1>Dashboard</h1>
 
-        <!-- Anzeigen der Benutzerdaten, wenn der Benutzer eingeloggt ist -->
         <div v-if="user">
             <h2>Willkommen, {{ user.username }}</h2>
             <p><strong>Discord ID:</strong> {{ user.id }}</p>
@@ -16,10 +15,8 @@
             <p v-else>Du hast noch keine Tickets.</p>
         </div>
 
-        <!-- Anzeige der Anmeldeaufforderung, wenn der Benutzer nicht eingeloggt ist -->
         <div v-else>
             <p>Du bist nicht eingeloggt. Bitte melde dich an.</p>
-            <!-- Der Benutzer wird sofort weitergeleitet -->
         </div>
     </div>
 </template>
@@ -34,52 +31,44 @@ export default {
     },
     created() {
         console.log("Dashboard wird geladen...");
-        this.checkUserStatus(); // Überprüft, ob der Benutzer eingeloggt ist
+        this.checkUserStatus();
     },
     methods: {
         async checkUserStatus() {
             console.log("Überprüfe Benutzerstatus...");
-            // Zunächst prüfen, ob der Benutzer in localStorage gespeichert ist
             const storedUser = localStorage.getItem("user");
             if (storedUser) {
-                this.user = JSON.parse(storedUser); // Benutzerdaten aus localStorage setzen
+                this.user = JSON.parse(storedUser);
                 this.fetchTickets();
             } else {
-                // Wenn nicht im localStorage, versuchen, Benutzerdaten vom Backend zu erhalten
                 await this.storeUserData();
             }
         },
-
         async storeUserData() {
             console.log("Versuche, Benutzerdaten vom Backend zu erhalten...");
             try {
                 const response = await fetch("http://backendtickets.wonder-craft.de/auth/user", {
-                    credentials: "include", // Mit Cookies/Anmeldeinformationen senden
+                    credentials: "include",
                 });
-
                 console.log("Antwort vom Backend:", response);
                 if (response.ok) {
                     const user = await response.json();
                     console.log("Benutzerdaten erhalten:", user);
-                    this.user = user; // Benutzerdaten im Komponentenstatus setzen
-                    localStorage.setItem("user", JSON.stringify(user)); // Speichern der Benutzerdaten im localStorage
+                    this.user = user;
+                    localStorage.setItem("user", JSON.stringify(user));
                     console.log("Benutzerdaten erfolgreich gespeichert");
                 } else {
                     console.log("Fehler beim Abrufen der Benutzerdaten");
-                    //this.redirectToLogin(); // Weiterleitung zur Login-Seite
                 }
             } catch (error) {
                 console.error("Fehler beim Abrufen der Benutzerdaten:", error);
-                //this.redirectToLogin(); // Weiterleitung zur Login-Seite
             }
         },
-
         async fetchTickets() {
             try {
                 const response = await fetch("http://backendtickets.wonder-craft.de/tickets", {
                     credentials: "include",
                 });
-
                 if (response.ok) {
                     this.tickets = await response.json();
                 } else {
@@ -90,9 +79,7 @@ export default {
                 this.tickets = [];
             }
         },
-
         redirectToLogin() {
-            // Weiterleitung zur Login-Seite
             window.location.href = "http://tickets.wonder-craft.de/login";
         },
     },
