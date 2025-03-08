@@ -37,24 +37,25 @@ const TicketItem = styled.li`
 
 function Dashboard() {
   const location = useLocation();
+  const navigate = useNavigate();
   const searchParams = new URLSearchParams(location.search);
   const username = searchParams.get("username");
   const userId = searchParams.get("userId");
   const avatar = searchParams.get("avatar");
-  const navigate = useNavigate();
   const [tickets, setTickets] = useState([]);
 
   useEffect(() => {
+    if (!username) {
+      navigate("/login");
+      return;
+    }
+
     // Daten im localStorage speichern
     localStorage.setItem("username", username);
     localStorage.setItem("loggedIn", "true");
     localStorage.setItem("userId", userId);
     localStorage.setItem("avatar", avatar);
 
-    // Search-Parameter nullen (URL bereinigen)
-    navigate("/dashboard", { replace: true });
-
-    // Beispiel-Tickets (ersetze dies durch deine tatsächlichen Ticket-Daten)
     const exampleTickets = [
       { id: 1, title: "Problem mit Login", date: "2023-10-26" },
       { id: 2, title: "Frage zu Account-Einstellungen", date: "2023-10-25" },
@@ -67,15 +68,6 @@ function Dashboard() {
     // Hier sollte die Weiterleitung zu deinem HTML-Chatverlauf erfolgen
     window.location.href = `/ticket-chat/${ticketId}.html`;
   };
-
-  if (!username) {
-    return (
-      <div>
-        <h1>Willkommen im Dashboard!</h1>
-        <p>Benutzername nicht gefunden. Bitte melde dich erneut an.</p>
-      </div>
-    );
-  }
 
   return (
     <DashboardContainer>
