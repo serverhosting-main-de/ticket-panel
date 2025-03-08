@@ -67,7 +67,8 @@ app.get("/callback", async (req, res) => {
     if (error.response && error.response.status === 401) {
       res.status(401).send("Ungültige Anmeldeinformationen");
     } else {
-      res.status(500).send("Authentifizierung fehlgeschlagen");
+      res.status(500).send("Authentifizierung fehlgeschlagen" + error.message);
+      console.error("Authentifizierung fehlgeschlagen:", error.message);
     }
   }
 });
