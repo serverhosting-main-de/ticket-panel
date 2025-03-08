@@ -65,9 +65,11 @@ export default {
                     console.log("Benutzerdaten erfolgreich gespeichert");
                 } else {
                     console.log("Fehler beim Abrufen der Benutzerdaten");
+                    //this.redirectToLogin(); // Weiterleitung zur Login-Seite
                 }
             } catch (error) {
                 console.error("Fehler beim Abrufen der Benutzerdaten:", error);
+                //this.redirectToLogin(); // Weiterleitung zur Login-Seite
             }
         },
 
@@ -88,13 +90,9 @@ export default {
             }
         },
 
-        loginWithDiscord() {
-            window.location.href = "http://backendtickets.wonder-craft.de/auth/discord";
-        },
-
-        redirectToHome() {
-            // this.$router.push("/"); // Weiterleitung zur Startseite (Home.vue)
-            console.log("Weiterleitung zur Startseite");
+        redirectToLogin() {
+            // Weiterleitung zur Login-Seite
+            window.location.href = "http://tickets.wonder-craft.de/login";
         },
     },
 };
