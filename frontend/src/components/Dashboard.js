@@ -6,6 +6,15 @@ function Dashboard() {
   const searchParams = new URLSearchParams(location.search);
   const username = searchParams.get("username");
 
+  if (!username) {
+    return (
+      <div>
+        <h1>Willkommen im Dashboard!</h1>
+        <p>Benutzername nicht gefunden. Bitte melde dich erneut an.</p>
+      </div>
+    );
+  }
+
   return (
     <div>
       <h1>Willkommen im Dashboard, {username}!</h1>
