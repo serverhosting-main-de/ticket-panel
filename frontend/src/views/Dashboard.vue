@@ -23,6 +23,9 @@
 
 <script>
 export default {
+    setup() {
+        console.log("Dashboard wird geladen...");
+    },
     data() {
         return {
             user: null,
@@ -80,7 +83,7 @@ export default {
             }
         },
         redirectToLogin() {
-            window.location.href = "http://tickets.wonder-craft.de/login";
+            window.location.href = "http://tickets.wonder-craft.de/";
         },
     },
 };
