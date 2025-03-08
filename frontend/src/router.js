@@ -32,7 +32,7 @@ router.beforeEach((to, from, next) => {
     console.log("Nicht authentifiziert, Weiterleitung zur Home-Seite.");
     next("/");
   } else {
-    next("/dashboard");
+    next();
   }
 });
 
