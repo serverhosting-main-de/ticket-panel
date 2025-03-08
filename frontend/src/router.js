@@ -11,7 +11,7 @@ const routes = [
   {
     path: "/dashboard",
     component: Dashboard,
-    meta: { requiresAuth: true, title: "Dashboard - Wonder-Craft Tickets" },
+    meta: { title: "Dashboard - Wonder-Craft Tickets" },
   },
   {
     path: "/:pathMatch(.*)*",
@@ -32,7 +32,7 @@ router.beforeEach((to, from, next) => {
     console.log("Nicht authentifiziert, Weiterleitung zur Home-Seite.");
     next("/");
   } else {
-    next();
+    next("/dashboard");
   }
 });
 
