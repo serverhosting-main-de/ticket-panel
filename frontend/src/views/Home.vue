@@ -4,18 +4,15 @@
             <h1>Willkommen bei Wonder-Craft Tickets</h1>
             <p class="description">Siehe deine alten Tickets noch einmal an</p>
 
-            <!-- Zeige Login-Button nur, wenn der Benutzer nicht eingeloggt ist -->
             <button v-if="!user && !isLoading" @click="loginWithDiscord" class="login-button">
                 Mit Discord anmelden
             </button>
 
-            <!-- Ladeanimation, während der Benutzerstatus überprüft wird -->
             <div v-if="isLoading" class="loading-spinner">
                 <div class="spinner"></div>
                 <p>Überprüfe Anmeldestatus...</p>
             </div>
 
-            <!-- Weiterleitungshinweis, wenn der Benutzer eingeloggt ist -->
             <div v-if="user" class="redirect-message">
                 <p>Du bist bereits eingeloggt. Weiterleitung zum Dashboard...</p>
             </div>
@@ -27,26 +24,35 @@
 export default {
     data() {
         return {
-            user: null, // Speichert die Benutzerdaten
-            isLoading: true, // Ladezustand für die Überprüfung des Benutzerstatus
+            user: null,
+            isLoading: true,
         };
     },
     created() {
         console.log("Home wird geladen...");
-        this.checkUserStatus(); // Überprüft den Benutzerstatus beim Laden der Komponente
+        this.checkUserStatus();
     },
     methods: {
         async checkUserStatus() {
             try {
-                const storedUser = localStorage.getItem("user");
-                if (storedUser) {
-                    this.user = JSON.parse(storedUser);
-                    this.$router.push("/dashboard"); // Weiterleitung zum Dashboard
+                const token = document.cookie.replace(/(?:(?:^|.*;\s*)token\s*\=\s*([^;]*).*$)|^.*$/, "$1"); // Cookie abrufen
+                if (token) {
+                    const response = await fetch("http://backendtickets.wonder-craft.de/auth/user", {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    });
+                    if (response.ok) {
+                        this.user = await response.json();
+                        this.$router.push("/dashboard");
+                    } else {
+                        console.log("Benutzer nicht eingeloggt");
+                    }
                 }
             } catch (error) {
                 console.error("Fehler beim Überprüfen des Benutzerstatus:", error);
             } finally {
-                this.isLoading = false; // Ladezustand beenden
+                this.isLoading = false;
             }
         },
         loginWithDiscord() {
@@ -57,32 +63,15 @@ export default {
 </script>
 
 <style scoped>
-/* Grundlegende Stile */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Arial', sans-serif;
-}
-
-body {
-    background-color: #1a1d23;
-    color: #e4e7eb;
+.home-container {
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
     width: 100vw;
-    overflow: hidden;
-}
-
-.home-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
-    width: 100%;
     text-align: center;
+    background-color: #1a1d23;
+    color: #e4e7eb;
 }
 
 .content {
@@ -109,7 +98,7 @@ h1 {
     color: #b1bbc5;
 }
 
-button {
+.login-button {
     padding: 12px 30px;
     background-color: #7289da;
     color: white;
@@ -123,16 +112,15 @@ button {
     margin-top: 20px;
 }
 
-button:hover {
+.login-button:hover {
     background-color: #5a6eb3;
     transform: translateY(-3px);
 }
 
-button:active {
+.login-button:active {
     transform: translateY(2px);
 }
 
-/* Ladeanimation */
 .loading-spinner {
     display: flex;
     flex-direction: column;
@@ -159,14 +147,12 @@ button:active {
     }
 }
 
-/* Weiterleitungshinweis */
 .redirect-message {
     margin-top: 20px;
     font-size: 1.1rem;
     color: #b1bbc5;
 }
 
-/* Animation für das Einblenden der Komponente */
 @keyframes fadeIn {
     from {
         opacity: 0;

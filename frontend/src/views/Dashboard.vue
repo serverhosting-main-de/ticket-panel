@@ -2,7 +2,15 @@
     <div class="dashboard-container">
         <h1>Dashboard</h1>
 
-        <div v-if="user">
+        <div v-if="isLoading">
+            <p>Lade Dashboard...</p>
+        </div>
+
+        <div v-else-if="error">
+            <p>{{ error }}</p>
+        </div>
+
+        <div v-else-if="user">
             <h2>Willkommen, {{ user.username }}</h2>
             <p><strong>Discord ID:</strong> {{ user.id }}</p>
 
@@ -23,13 +31,12 @@
 
 <script>
 export default {
-    setup() {
-        console.log("Dashboard wird geladen...");
-    },
     data() {
         return {
             user: null,
             tickets: [],
+            isLoading: true,
+            error: null,
         };
     },
     created() {
@@ -39,47 +46,49 @@ export default {
     methods: {
         async checkUserStatus() {
             console.log("Überprüfe Benutzerstatus...");
-            const storedUser = localStorage.getItem("user");
-            if (storedUser) {
-                this.user = JSON.parse(storedUser);
-                this.fetchTickets();
-            } else {
-                await this.storeUserData();
-            }
-        },
-        async storeUserData() {
-            console.log("Versuche, Benutzerdaten vom Backend zu erhalten...");
+            this.isLoading = true;
+            this.error = null;
             try {
-                const response = await fetch("http://backendtickets.wonder-craft.de/auth/user", {
-                    credentials: "include",
-                });
-                console.log("Antwort vom Backend:", response);
-                if (response.ok) {
-                    const user = await response.json();
-                    console.log("Benutzerdaten erhalten:", user);
-                    this.user = user;
-                    localStorage.setItem("user", JSON.stringify(user));
-                    console.log("Benutzerdaten erfolgreich gespeichert");
-                } else {
-                    console.log("Fehler beim Abrufen der Benutzerdaten");
+                const token = document.cookie.replace(/(?:(?:^|.*;\s*)token\s*\=\s*([^;]*).*$)|^.*$/, "$1"); // Cookie abrufen
+                if (token) {
+                    const response = await fetch("http://backendtickets.wonder-craft.de/auth/user", {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    });
+                    if (response.ok) {
+                        this.user = await response.json();
+                        await this.fetchTickets();
+                    } else {
+                        console.error("Fehler beim Abrufen der Benutzerdaten:", response.status, response.statusText);
+                        this.error = "Fehler beim Laden der Benutzerdaten.";
+                    }
                 }
-            } catch (error) {
-                console.error("Fehler beim Abrufen der Benutzerdaten:", error);
+            } catch (err) {
+                console.error("Fehler beim Überprüfen des Benutzerstatus:", err);
+                this.error = "Fehler beim Laden des Dashboards.";
+            } finally {
+                this.isLoading = false;
             }
         },
         async fetchTickets() {
+            console.log("Lade Tickets...");
             try {
+                const token = document.cookie.replace(/(?:(?:^|.*;\s*)token\s*\=\s*([^;]*).*$)|^.*$/, "$1"); // Cookie abrufen
                 const response = await fetch("http://backendtickets.wonder-craft.de/tickets", {
-                    credentials: "include",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
                 });
                 if (response.ok) {
                     this.tickets = await response.json();
                 } else {
-                    this.tickets = [];
+                    console.error("Fehler beim Abrufen der Tickets:", response.status, response.statusText);
+                    this.error = "Fehler beim Laden der Tickets.";
                 }
-            } catch (error) {
-                console.error("Fehler beim Abrufen der Tickets:", error);
-                this.tickets = [];
+            } catch (err) {
+                console.error("Fehler beim Abrufen der Tickets:", err);
+                this.error = "Fehler beim Laden der Tickets.";
             }
         },
         redirectToLogin() {
