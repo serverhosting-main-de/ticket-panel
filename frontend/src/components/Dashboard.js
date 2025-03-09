@@ -217,7 +217,6 @@ function Dashboard() {
             );
           }
         } else {
-          //Wenn /api/auth/status nicht isLoggedIn, dann trotzdem localstorage checken
           if (!handleLocalStorage()) return; //Wenn handleLocalStorage false, dann return.
         }
       } catch (error) {
@@ -230,18 +229,11 @@ function Dashboard() {
       }
     };
 
-    // --- Hauptablauf ---
-    // 1. Versuche, Daten aus der URL zu laden und in den localStorage zu speichern.
-    //    Dies setzt *bereits* isLoggedIn, wenn die Daten vorhanden sind.
-    // 2. Rufe checkAuthStatus auf.  Diese Funktion prüft die Session *und*
-    //    verwendet handleLocalStorage als Fallback.
     if (!handleLocalStorage()) {
-      //Rufe es direkt auf und prüfe, ob du zur /login musst.
       checkAuthStatus();
     } else {
       setLoading(false); // Ladezustand beenden, da Daten aus LocalStorage
     }
-    //-----------------------
 
     const newSocket = io("https://backendtickets.wonder-craft.de");
     setSocket(newSocket);
@@ -260,7 +252,7 @@ function Dashboard() {
     return () => {
       newSocket.disconnect();
     };
-  }, [navigate]); // Abhängigkeit: navigate
+  }, [navigate, location.search]); // Abhängigkeit: navigate
 
   const openTicketChat = async (ticketFileName, ticketId) => {
     try {
