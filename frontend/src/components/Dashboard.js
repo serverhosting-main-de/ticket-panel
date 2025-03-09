@@ -36,6 +36,38 @@ const TicketItem = styled.li`
   }
 `;
 
+const Modal = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;
+
+const ModalContent = styled.div`
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 80%;
+  max-height: 80%;
+  overflow-y: auto;
+  position: relative;
+`;
+
+const CloseButton = styled.button`
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+`;
+
 function Dashboard() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -43,10 +75,11 @@ function Dashboard() {
   const username = searchParams.get("username");
   const userId = searchParams.get("userId");
   const avatar = searchParams.get("avatar");
-  const [tickets, setTickets] = useState([]);
+  const [tickets, setTickets] = useState();
   const [hasRole, setHasRole] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [modalContent, setModalContent] = useState(null);
 
   useEffect(() => {
     if (!username) {
@@ -88,7 +121,20 @@ function Dashboard() {
   }, [username, userId, avatar, navigate]);
 
   const openTicketChat = (ticketFileName) => {
-    window.location.href = `/ticket-chat/${ticketFileName}.html`;
+    axios
+      .get(
+        `https://backendtickets.wonder-craft.de/ticket-content/${ticketFileName}`
+      )
+      .then((response) => {
+        setModalContent(response.data);
+      })
+      .catch((error) => {
+        console.error("Fehler beim Laden des Ticket-Inhalts:", error);
+      });
+  };
+
+  const closeModal = () => {
+    setModalContent(null);
   };
 
   if (loading) {
@@ -128,6 +174,15 @@ function Dashboard() {
         </TicketList>
       ) : (
         <p>Keine Tickets gefunden.</p>
+      )}
+
+      {modalContent && (
+        <Modal onClick={closeModal}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <CloseButton onClick={closeModal}>×</CloseButton>
+            <div dangerouslySetInnerHTML={{ __html: modalContent }} />
+          </ModalContent>
+        </Modal>
       )}
     </DashboardContainer>
   );

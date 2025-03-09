@@ -144,6 +144,19 @@ app.get("/tickets", async (req, res) => {
   }
 });
 
+app.get("/ticket-content/:fileName", async (req, res) => {
+  const { fileName } = req.params;
+  const filePath = path.join("/app/tickets", fileName);
+
+  try {
+    const content = await fs.readFile(filePath, "utf8");
+    res.send(content);
+  } catch (error) {
+    console.error("Fehler beim Lesen des Ticket-Inhalts:", error);
+    res.status(500).send("Fehler beim Lesen des Ticket-Inhalts.");
+  }
+});
+
 // Server starten
 app.listen(port, () => {
   console.log(`Backend läuft auf Port ${port}`);
