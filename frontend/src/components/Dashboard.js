@@ -126,9 +126,10 @@ function Dashboard() {
   const location = useLocation();
   const navigate = useNavigate();
   const searchParams = new URLSearchParams(location.search);
-  const username = searchParams.get("username");
-  const userId = searchParams.get("userId");
-  const avatar = searchParams.get("avatar");
+  const username =
+    searchParams.get("username") || localStorage.getItem("username");
+  const userId = searchParams.get("userId") || localStorage.getItem("userId");
+  const avatar = searchParams.get("avatar") || localStorage.getItem("avatar");
 
   const [tickets, setTickets] = useState([]);
   const [hasRole, setHasRole] = useState(null);
@@ -244,12 +245,12 @@ function Dashboard() {
     }
   };
 
-  if (loading) {
-    return <DashboardContainer>Lade Daten...</DashboardContainer>;
-  }
-
   if (error) {
     return <DashboardContainer>{error}</DashboardContainer>;
+  }
+
+  if (loading) {
+    return <DashboardContainer>Lade Daten...</DashboardContainer>;
   }
 
   return (
