@@ -5,8 +5,6 @@ import styled, { keyframes } from "styled-components"; // keyframes für Animati
 import io from "socket.io-client";
 
 // Styled Components (bleiben größtenteils gleich, mit kleinen Anpassungen)
-// ... (Deine Styled Components - wie in der vorherigen Antwort) ...
-// Haupt-Dashboard-Komponente
 
 const fadeIn = keyframes`
   from {
@@ -64,7 +62,7 @@ const StatusIndicator = styled.div`
     }
   }};
   position: absolute;
-  bottom: 10px;
+  bottom: 15px;
   left: 50px; /* Position relativ zum UserInfo Container */
   border: 2px solid #34495e;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
@@ -190,6 +188,7 @@ const LoadingSpinner = styled.div`
   animation: ${rotate} 1s linear infinite;
   margin: 50px auto; // Zentriert
 `;
+
 function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -200,123 +199,111 @@ function Dashboard() {
   const [socket, setSocket] = useState(null);
   const [modalContent, setModalContent] = useState(null);
   const [ticketViewers, setTicketViewers] = useState({});
-  const [loading, setLoading] = useState(true); // Initial auf true setzen
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // Initial auf false
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userData, setUserData] = useState(null);
 
   useEffect(() => {
-    // Funktion, um URL-Parameter zu verarbeiten und im localStorage zu speichern
-    const handleUrlParams = () => {
-      const searchParams = new URLSearchParams(location.search);
-      const urlUsername = searchParams.get("username");
-      const urlUserId = searchParams.get("userId");
-      const urlAvatar = searchParams.get("avatar");
+    // --- Search Params VERARBEITEN (als ERSTES) ---
+    const searchParams = new URLSearchParams(location.search);
+    const urlUsername = searchParams.get("username");
+    const urlUserId = searchParams.get("userId");
+    const urlAvatar = searchParams.get("avatar");
 
-      if (urlUsername && urlUserId) {
-        localStorage.setItem("username", urlUsername);
-        localStorage.setItem("userId", urlUserId);
-        localStorage.setItem("avatar", urlAvatar || "");
-        localStorage.setItem("loggedIn", "true");
-        setIsLoggedIn(true); // Setze isLoggedIn, wenn Daten im localStorage
-        setUserData({
-          //Setze UserData direkt, wenn die URL Parameter hat.
-          username: urlUsername,
-          userId: urlUserId,
-          avatar: urlAvatar,
-        });
-        return true; // URL-Parameter wurden verarbeitet
-      }
-      return false; // Keine URL Parameter
-    };
+    //Wenn Search params vorhanden, daten in den LocalStorage und isLoggedIn auf true
+    if (urlUsername && urlUserId) {
+      localStorage.setItem("username", urlUsername);
+      localStorage.setItem("userId", urlUserId);
+      localStorage.setItem("avatar", urlAvatar || "");
+      localStorage.setItem("loggedIn", "true");
+      setIsLoggedIn(true);
+      setUserData({
+        username: urlUsername,
+        userId: urlUserId,
+        avatar: urlAvatar,
+      });
+    }
+    // -----------------------------------------------
 
-    // Funktion um LocalStorage zu handhaben, WENN keine URL Parameter da sind
+    // Funktion um LocalStorage zu handhaben
     const handleLocalStorage = () => {
-      if (localStorage.getItem("loggedIn") === "true") {
-        const storedUsername = localStorage.getItem("username");
-        const storedUserId = localStorage.getItem("userId");
-        const storedAvatar = localStorage.getItem("avatar");
-
-        if (storedUsername && storedUserId) {
-          setUserData({
-            username: storedUsername,
-            userId: storedUserId,
-            avatar: storedAvatar,
-          });
-          setIsLoggedIn(true);
-          return true; // LocalStorage Daten sind vorhanden und gültig.
-        }
+      //Wenn LocalStorage sagt, dass nicht eingeloggt, return false
+      if (localStorage.getItem("loggedIn") !== "true") {
+        navigate("/login");
+        return false; // Nicht eingeloggt, brich ab.
       }
-      return false; // Keine gültigen LocalStorage Daten
+
+      // Benutzerdaten aus localStorage holen, wenn vorhanden
+      const storedUsername = localStorage.getItem("username");
+      const storedUserId = localStorage.getItem("userId");
+      const storedAvatar = localStorage.getItem("avatar");
+
+      if (storedUsername && storedUserId) {
+        setUserData({
+          username: storedUsername,
+          userId: storedUserId,
+          avatar: storedAvatar,
+        });
+        setIsLoggedIn(true); // Eingeloggt via LocalStorage.
+        return true; // LocalStorage Daten vorhanden.
+      }
+
+      return false; //Kehre zu false zurück, falls keine Daten vorhanden
     };
 
     const checkAuthStatus = async () => {
-      console.log("checkAuthStatus gestartet");
       try {
         const response = await axios.get(
           "https://backendtickets.wonder-craft.de/api/auth/status",
-          { withCredentials: true }
+          { withCredentials: true } // Wichtig:  Cookies mitsenden!
         );
-        console.log("checkAuthStatus Antwort:", response.data);
 
         if (response.data.isLoggedIn) {
-          setIsLoggedIn(true); // Setze isLoggedIn *vor* dem Laden weiterer Daten
-          setUserData(response.data); // Benutzerdaten aus der Session
+          setIsLoggedIn(true);
+          setUserData(response.data); // Benutzerdaten aus der Session.
+        } else if (!handleLocalStorage()) {
+          // Erst Session, dann LocalStorage.  Wenn Local Storage *auch* fehlschlägt-> navigate
+          navigate("/login");
+          return; // Wichtig, um weitere Ausführung zu verhindern.
+        }
 
-          // Daten abrufen (Tickets, Rolle, Status) – jetzt innerhalb des if-Blocks
+        // Rolle und Status *immer* abrufen (auch wenn aus LocalStorage geladen)
+        if (response.data.userId || localStorage.getItem("userId")) {
           try {
             const roleResponse = await axios.get(
-              `https://backendtickets.wonder-craft.de/check-role/${response.data.userId}`
+              `https://backendtickets.wonder-craft.de/check-role/${
+                response.data.userId || localStorage.getItem("userId")
+              }`
             );
             setHasRole(roleResponse.data.hasRole);
             setStatus(roleResponse.data.status);
-
-            const ticketsResponse = await axios.get(
-              "https://backendtickets.wonder-craft.de/tickets"
-            );
-            setTickets(ticketsResponse.data);
           } catch (error) {
-            console.error("Fehler beim Abrufen von Rolle/Tickets:", error);
-            setError(
-              "Fehler beim Laden von Daten. Bitte versuche es später noch einmal."
-            );
-          }
-        } else {
-          // Nicht eingeloggt, localStorage prüfen
-          if (!handleLocalStorage()) {
-            navigate("/login"); // Umleiten, wenn auch im localStorage nichts ist
-            return; // Beende die Ausführung hier.
+            console.error("Fehler beim Abrufen von Rolle/Status:", error);
+            setError("Fehler beim Laden von Benutzerdaten."); // Spezifischer Fehler
           }
         }
       } catch (error) {
         console.error("Authentication check failed:", error);
-        // Fehler, aber trotzdem localStorage prüfen (Fallback)
+        // Im Fehlerfall trotzdem LocalStorage versuchen (Fallback)
         if (!handleLocalStorage()) {
-          navigate("/login"); // Umleiten, wenn keine Session und kein LocalStorage
-          return;
+          navigate("/login");
+          return; // Beende die Ausführung hier.
         }
       } finally {
-        console.log("checkAuthStatus beendet");
-        setLoading(false); // Ladezustand IMMER beenden (auch im Fehlerfall)
+        setLoading(false);
       }
     };
 
-    // Hauptablauf:
-    if (!handleUrlParams()) {
-      //Verarbeite URL Params zuerst
-      if (!handleLocalStorage()) {
-        //Wenn keine URL params und kein LocalStorage, dann Auth Check
-        checkAuthStatus();
-      } else {
-        //Wenn LocalStorage, dann direkt nicht mehr laden.
-        setLoading(false);
-      }
+    // Hauptablauf (leicht verändert):
+    if (!handleLocalStorage()) {
+      // Versuche LocalStorage. Wenn das fehlschlägt, prüfe Auth-Status.
+      checkAuthStatus(); // Prüft Session und leitet ggf. um.
     } else {
-      //Wenn URL Params, dann direkt nicht mehr laden.
-      setLoading(false);
+      setLoading(false); // Daten aus LocalStorage geladen, kein Ladezustand mehr.
+      checkAuthStatus(); // Trotzdem Auth-Status prüfen, um *aktuelle* Daten zu bekommen (Rolle/Status)
     }
 
-    // Socket.IO-Verbindung (außerhalb von checkAuthStatus, aber innerhalb useEffect)
     const newSocket = io("https://backendtickets.wonder-craft.de");
     setSocket(newSocket);
 
@@ -334,7 +321,7 @@ function Dashboard() {
     return () => {
       newSocket.disconnect();
     };
-  }, [navigate, location.search]); // Abhängigkeiten: navigate und location.search
+  }, [navigate, location.search]); // Abhängigkeiten
 
   const openTicketChat = async (ticketFileName, ticketId) => {
     try {
@@ -434,6 +421,7 @@ function Dashboard() {
                 alt="Avatar"
               />
             )}
+            <StatusIndicator status={status} />
             <h1>
               Willkommen,{" "}
               {userData
@@ -441,7 +429,6 @@ function Dashboard() {
                 : localStorage.getItem("username") || "Benutzer"}
               !
             </h1>
-            <StatusIndicator status={status} />
           </UserInfo>
 
           <p>
@@ -548,8 +535,7 @@ function Dashboard() {
           )}
         </>
       ) : (
-        // Optional: Hier könntest du eine andere Komponente anzeigen (z.B. eine Info-Seite)
-        <p>Nicht autorisiert, bitte einloggen.</p>
+        navigate("/login")
       )}
     </DashboardContainer>
   );
