@@ -61,11 +61,7 @@ function Home() {
   const isLoggedIn = localStorage.getItem("loggedIn") === "true";
 
   const handleButtonClick = () => {
-    if (isLoggedIn) {
-      navigate("/dashboard");
-    } else {
-      navigate("/login");
-    }
+    navigate(isLoggedIn ? "/dashboard" : "/login");
   };
 
   return (
@@ -77,6 +73,7 @@ function Home() {
           Überblick über Ihre Ticket-Historie.
         </Description>
         <CallToAction>Einblick in Ihre vergangenen Anliegen.</CallToAction>
+
         <ActionButton onClick={handleButtonClick}>
           {isLoggedIn ? "Zum Dashboard" : "Zum Login"}
         </ActionButton>
