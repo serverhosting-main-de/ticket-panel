@@ -195,22 +195,41 @@ app.get("/api/auth/status", (req, res) => {
 app.get("/check-role/:userId", async (req, res) => {
   const { userId } = req.params;
   console.log("Check-role aufgerufen für userID: " + userId);
+  console.log("GUILD_ID:", process.env.GUILD_ID);
+  console.log("REQUIRED_ROLE:", process.env.REQUIRED_ROLE);
+
   try {
     const guild = await client.guilds.fetch(process.env.GUILD_ID);
+    console.log("Guild gefunden:", guild.name);
     const member = await guild.members.fetch(userId);
-    const hasRole = member.roles.cache.some(
-      (role) => role.name === process.env.REQUIRED_ROLE
-    );
-    const status = member.presence?.status || "offline"; // Standardmäßig "offline"
+    console.log("Member gefunden:", member.user.tag);
+
+    const hasRole = member.roles.cache.some((role) => {
+      console.log("Prüfe Rolle:", role.name);
+      return role.name === process.env.REQUIRED_ROLE;
+    });
+
+    console.log("hasRole:", hasRole);
+
+    const status = member.presence?.status || "offline";
     res.json({ hasRole, status });
   } catch (error) {
     console.error("Fehler beim Überprüfen der Rolle:", error);
-    res
-      .status(500)
-      .json({ error: "Fehler beim Abrufen der Benutzerinformationen." });
+    if (error.code === 10013) {
+      // "Unknown User"
+      res
+        .status(404)
+        .json({ error: "Benutzer nicht auf dem Server gefunden." });
+    } else if (error.code === 10004) {
+      // "Unknown Guild"
+      res.status(404).json({ error: "Server (Guild) nicht gefunden." });
+    } else {
+      res
+        .status(500)
+        .json({ error: "Fehler beim Abrufen der Benutzerinformationen." });
+    }
   }
 });
-
 // Tickets abrufen
 app.get("/tickets", async (req, res) => {
   console.log("Tickets werden abgerufen");
@@ -303,11 +322,9 @@ app.get("/api/tickets/:ticketId/chat", async (req, res) => {
     const channel = await client.channels.fetch(channelId);
     if (!channel || channel.type !== 0) {
       // 0 = TextChannel, 11=PublicThread
-      return res
-        .status(404)
-        .json({
-          error: "Discord channel not found or not a text channel/thread.",
-        });
+      return res.status(404).json({
+        error: "Discord channel not found or not a text channel/thread.",
+      });
     }
 
     // 3. Nachrichten abrufen

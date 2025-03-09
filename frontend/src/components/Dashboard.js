@@ -32,10 +32,21 @@ const StatusIndicator = styled.div`
   width: 15px;
   height: 15px;
   border-radius: 50%;
-  background-color: ${({ status }) =>
-    status === "online" ? "#2ecc71" : "#e74c3c"};
   margin-left: auto;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  background-color: ${({ status }) => {
+    switch (status) {
+      case "online":
+        return "#2ecc71"; // Grün
+      case "idle":
+        return "#f1c40f"; // Gelb/Orange
+      case "dnd":
+        return "#e74c3c"; // Rot
+      case "offline":
+      default:
+        return "#747f8d"; // Grau (oder eine andere Farbe für Offline/Unsichtbar)
+    }
+  }};
 `;
 
 const Table = styled.table`
