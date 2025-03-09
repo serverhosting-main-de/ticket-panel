@@ -7,6 +7,7 @@ const { Client, GatewayIntentBits, Partials } = require("discord.js");
 const http = require("http");
 const { Server } = require("socket.io");
 const { MongoClient, ObjectId } = require("mongodb");
+const { stdout } = require("process");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -15,7 +16,7 @@ const port = process.env.PORT || 3000;
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "https://tickets.wonder-craft.de", // Erlaube nur dein Frontend, * in prod
+    origin: "https://tickets.wonder-craft.de", // Erlaube nur dein Frontend
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -63,26 +64,23 @@ client.once("ready", () => {
 client.login(process.env.DISCORD_TOKEN);
 
 // --- Middleware ---
-// CORS (angepasst für Entwicklung und Produktion)
-const isProduction = process.env.NODE_ENV === "production";
+// CORS (nur für Produktion)
 app.use(
   cors({
-    origin: isProduction
-      ? "https://tickets.wonder-craft.de"
-      : "http://localhost:3001", // Erlaube dein lokales Frontend (Entwicklung)
+    origin: "https://tickets.wonder-craft.de",
     credentials: true,
   })
 );
 
-// Express Session (angepasst für Entwicklung und Produktion)
+// Express Session (nur für Produktion)
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
     cookie: {
-      secure: isProduction, // true in Produktion (HTTPS), false in lokaler Entwicklung
-      sameSite: isProduction ? "none" : "lax", // "lax" für lokale Entwicklung, "none" für Produktion
+      secure: true, // HTTPS erforderlich
+      sameSite: "none", // Erforderlich für CORS
       httpOnly: true,
     },
   })
@@ -175,19 +173,18 @@ app.get("/api/auth/status", (req, res) => {
 // Rolle prüfen (Discord-Bot)
 app.get("/check-role/:userId", async (req, res) => {
   const { userId } = req.params;
-  console.log(`Check-role aufgerufen für userID: ${userId}`); // Verwende Template-Strings
+  console.log(`Check-role aufgerufen für userID: ${userId}`);
   try {
     const guild = await client.guilds.fetch(process.env.GUILD_ID);
     const member = await guild.members.fetch(userId);
-    var hasRole = member.roles.cache.some(
+    const hasRole = member.roles.cache.some(
       (role) => role.name === process.env.REQUIRED_ROLE
     );
-    hasRole = true; // Testzwecke
     const status = member.presence?.status || "offline";
     res.json({ hasRole, status });
   } catch (error) {
     console.error("Fehler beim Überprüfen der Rolle:", error);
-    const statusCode = error.code === 10013 || error.code === 10004 ? 404 : 500; //Konditioneller (ternärer) Operator
+    const statusCode = error.code === 10013 || error.code === 10004 ? 404 : 500;
     const errorMessage =
       error.code === 10013
         ? "Benutzer nicht auf dem Server gefunden."
@@ -273,8 +270,6 @@ app.post("/api/tickets/new", async (req, res) => {
     res.status(500).json({ error: "Fehler beim Speichern des Tickets." });
   }
 });
-
-// Chatverlauf abrufen (über Discord.js)
 app.get("/api/tickets/:ticketId/chat", async (req, res) => {
   const { ticketId } = req.params;
 
@@ -285,18 +280,23 @@ app.get("/api/tickets/:ticketId/chat", async (req, res) => {
       .findOne({ _id: objectId });
 
     if (!ticket || !ticket.threadID) {
-      return res.status(404).json({ error: "Ticket or Channel ID not found" });
-    }
-    const channelId = ticket.threadID;
-
-    const channel = await client.channels.fetch(channelId);
-    if (!channel || channel.type !== 0) {
       return res
         .status(404)
-        .json({ error: "Discord channel not found or not a text channel." });
+        .json({ error: "Ticket oder Thread-ID nicht gefunden." });
     }
 
-    const messages = await channel.messages.fetch({ limit: 100 }); // Letzte 100 Nachrichten
+    const threadId = ticket.threadID;
+
+    // Thread abrufen
+    const thread = await client.channels.fetch(threadId);
+    if (!thread || !thread.isThread()) {
+      return res
+        .status(404)
+        .json({ error: "Thread nicht gefunden oder kein gültiger Thread." });
+    }
+
+    // Nachrichten aus dem Thread abrufen
+    const messages = await thread.messages.fetch({ limit: 100 }); // Letzte 100 Nachrichten
 
     const formattedMessages = Array.from(messages.values())
       .reverse()
@@ -309,9 +309,10 @@ app.get("/api/tickets/:ticketId/chat", async (req, res) => {
       }));
 
     res.json(formattedMessages);
+    stdout.write("Chatverlauf gesendet\n | " + formattedMessages);
   } catch (error) {
-    console.error("Error fetching chat history:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    console.error("Fehler beim Abrufen des Chatverlaufs:", error);
+    res.status(500).json({ error: "Interner Serverfehler." });
   }
 });
 
@@ -357,7 +358,6 @@ io.on("connection", (socket) => {
       userAvatars[userId] = avatarHash; // Avatar-Hash speichern
     }
     io.to(ticketId).emit(
-      //io.to
       "updateTicketViewers",
       ticketId,
       ticketViewers[ticketId],
@@ -373,7 +373,6 @@ io.on("connection", (socket) => {
       );
       delete userAvatars[userId];
       io.to(ticketId).emit(
-        //io.to
         "updateTicketViewers",
         ticketId,
         ticketViewers[ticketId],
@@ -387,21 +386,19 @@ io.on("connection", (socket) => {
     // Aufräumen: Benutzer aus allen Tickets entfernen, die er ansieht
     for (const ticketId in ticketViewers) {
       if (ticketViewers[ticketId].includes(socket.id)) {
-        //socket.id anstatt userId
         ticketViewers[ticketId] = ticketViewers[ticketId].filter(
           (id) => id !== socket.id
-        ); //socket.id
+        );
         io.emit(
           "updateTicketViewers",
           ticketId,
           ticketViewers[ticketId],
           userAvatars
-        ); //io.emit
+        );
       }
     }
-    delete userAvatars[socket.id]; //korrigiert
+    delete userAvatars[socket.id];
   });
-  // KEIN initialer Ticket-Update hier.  Das passiert jetzt in connectToMongo.
 });
 
 // Server starten

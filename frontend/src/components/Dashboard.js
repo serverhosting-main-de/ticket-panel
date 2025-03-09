@@ -195,6 +195,17 @@ const LogoutButton = styled(ActionButton)`
   }
 `;
 
+// Hilfsfunktion für API-Aufrufe
+const fetchData = async (url, options = {}) => {
+  try {
+    const response = await axios.get(url, options);
+    return response.data;
+  } catch (error) {
+    console.error(`Fehler beim Abrufen von ${url}:`, error);
+    throw error;
+  }
+};
+
 function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -224,6 +235,7 @@ function Dashboard() {
     setUserData(null);
   }, []);
 
+  // Verarbeite Query-Parameter und setze Benutzerdaten
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const urlUsername = searchParams.get("username");
@@ -243,32 +255,32 @@ function Dashboard() {
     }
   }, [location.search, saveUserData, navigate]);
 
+  // Überprüfe den Authentifizierungsstatus
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        const response = await axios.get(
+        const authStatus = await fetchData(
           "https://backendtickets.wonder-craft.de/api/auth/status",
           { withCredentials: true }
         );
 
-        if (response.data.isLoggedIn) {
-          saveUserData(response.data);
+        if (authStatus.isLoggedIn) {
+          saveUserData(authStatus);
         } else if (!userData) {
           navigate("/login");
           return;
         }
 
-        if (response.data.userId || userData?.userId) {
+        if (authStatus.userId || userData?.userId) {
           try {
-            const roleResponse = await axios.get(
+            const roleResponse = await fetchData(
               `https://backendtickets.wonder-craft.de/check-role/${
-                response.data.userId || userData.userId
+                authStatus.userId || userData.userId
               }`
             );
-            setHasRole(roleResponse.data.hasRole);
-            setStatus(roleResponse.data.status);
+            setHasRole(roleResponse.hasRole);
+            setStatus(roleResponse.status);
           } catch (error) {
-            console.error("Fehler beim Abrufen von Rolle/Status:", error);
             setError("Fehler beim Laden von Benutzerdaten.");
           }
         }
@@ -288,7 +300,10 @@ function Dashboard() {
     } else {
       checkAuthStatus();
     }
+  }, [navigate, userData, saveUserData]);
 
+  // Socket.IO-Verbindung herstellen
+  useEffect(() => {
     const newSocket = io("https://backendtickets.wonder-craft.de");
     setSocket(newSocket);
 
@@ -306,20 +321,15 @@ function Dashboard() {
     return () => {
       newSocket.disconnect();
     };
-  }, [navigate, userData, saveUserData]);
+  }, []);
 
-  const handleLogout = () => {
-    clearUserData();
-    navigate("/login");
-  };
-
+  // Chatverlauf öffnen
   const openTicketChat = useCallback(
     async (ticketFileName, ticketId) => {
       try {
-        const response = await axios.get(
+        const chatHistory = await fetchData(
           `https://backendtickets.wonder-craft.de/api/tickets/${ticketId}/chat`
         );
-        const chatHistory = response.data;
 
         const formattedChatHistory = chatHistory.map((msg, index) => (
           <div key={index}>
@@ -346,24 +356,15 @@ function Dashboard() {
             userData.userId,
             userData.avatar?.split("/").pop().split(".")[0]
           );
-        } else if (socket) {
-          const storedUserId = localStorage.getItem("userId");
-          const storedAvatar = localStorage.getItem("avatar");
-          socket.emit(
-            "ticketOpened",
-            ticketId,
-            storedUserId,
-            storedAvatar?.split("/")?.pop()?.split(".")?.[0]
-          );
         }
       } catch (error) {
-        console.error("Error fetching chat history:", error);
         setModalContent("Fehler beim Laden des Chatverlaufs.");
       }
     },
     [socket, userData]
   );
 
+  // Modal schließen
   const closeModal = useCallback(() => {
     setModalContent(null);
     if (socket && userData) {
@@ -373,16 +374,14 @@ function Dashboard() {
       if (currentTicket) {
         socket.emit("ticketClosed", currentTicket.threadID, userData.userId);
       }
-    } else if (socket) {
-      const storedUserId = localStorage.getItem("userId");
-      const currentTicket = tickets.find(
-        (t) => t.fileName === modalContent?.ticketId
-      );
-      if (currentTicket) {
-        socket.emit("ticketClosed", currentTicket.threadID, storedUserId);
-      }
     }
   }, [socket, userData, tickets, modalContent]);
+
+  // Logout
+  const handleLogout = () => {
+    clearUserData();
+    navigate("/login");
+  };
 
   if (loading) {
     return (

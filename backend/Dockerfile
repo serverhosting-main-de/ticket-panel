@@ -5,7 +5,7 @@ FROM node:22.6.0-alpine
 WORKDIR /app
 
 # package.json und package-lock.json in das Arbeitsverzeichnis kopieren
-COPY package*.json ./
+COPY package.json ./
 
 # Abhängigkeiten installieren
 RUN npm install
