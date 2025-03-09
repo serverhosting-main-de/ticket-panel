@@ -6,33 +6,48 @@ const LoginContainer = styled.div`
   justify-content: center;
   align-items: center;
   height: 100vh;
-  background-color: #f0f0f0;
+  background: linear-gradient(
+    135deg,
+    #37474f,
+    #455a64
+  ); /* Dunkler, sanfter Farbverlauf */
+  color: #e0e0e0; /* Helles Grau für den Text */
 `;
 
 const LoginBox = styled.div`
-  background-color: #262626;
-  padding: 40px;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background-color: rgba(0, 0, 0, 0.4); /* Dunkler, transparenter Hintergrund */
+  padding: 60px;
+  border-radius: 12px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3); /* Sanfter Schatten für Tiefe */
   text-align: center;
+  max-width: 400px; /* Begrenzte Breite für bessere Lesbarkeit */
 `;
 
 const LoginTitle = styled.h1`
-  font-size: 24px;
-  margin-bottom: 20px;
+  font-size: 28px;
+  margin-bottom: 30px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
 `;
 
 const LoginButton = styled.button`
-  background-color: #7289da;
+  background: linear-gradient(
+    135deg,
+    #7289da,
+    #677bc4
+  ); /* Discord-inspirierter Farbverlauf */
   color: white;
-  padding: 12px 24px;
+  padding: 15px 30px;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 18px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 
   &:hover {
-    background-color: #677bc4;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
   }
 `;
 

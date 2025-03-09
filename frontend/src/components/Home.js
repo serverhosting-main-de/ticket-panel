@@ -8,51 +8,63 @@ const HomeContainer = styled.div`
   justify-content: center;
   align-items: center;
   height: 100vh;
-  background-color: #f0f0f0;
+  background: linear-gradient(
+    135deg,
+    #1a2a6c,
+    #2b324c
+  ); /* Dunklerer Farbverlauf */
+  color: #e0e0e0;
 `;
 
 const WelcomeBox = styled.div`
-  background-color: #262626;
-  padding: 40px;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background-color: rgba(0, 0, 0, 0.5); /* Dunkler, transparenter Hintergrund */
+  padding: 60px;
+  border-radius: 12px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3); /* Stärkere Schatten für mehr Tiefe */
   text-align: center;
+  max-width: 600px;
 `;
 
 const Title = styled.h1`
-  font-size: 36px;
-  margin-bottom: 20px;
-  color: #fff; // Geändert zu weiß, da der Hintergrund der WelcomeBox dunkel ist
-  font-weight: 600;
-  line-height: 1.2;
+  font-size: 42px;
+  margin-bottom: 25px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -1px;
 `;
 
 const Description = styled.p`
   font-size: 20px;
-  color: #ddd; // Geändert zu einem helleren Grau, da der Hintergrund der WelcomeBox dunkel ist
-  line-height: 1.6;
-  margin-bottom: 30px;
+  color: #bdbdbd; /* Etwas helleres Grau für Lesbarkeit */
+  line-height: 1.7;
+  margin-bottom: 40px;
 `;
 
 const CallToAction = styled.p`
   font-size: 18px;
-  color: #aaa; // Geändert zu einem helleren Grau, da der Hintergrund der WelcomeBox dunkel ist
+  color: #90a4ae; /* Ein dezenter Blauton für den Akzent */
   font-style: italic;
-  margin-bottom: 20px;
+  margin-bottom: 30px;
 `;
 
 const ActionButton = styled.button`
-  padding: 15px 30px;
-  font-size: 18px;
-  background-color: #007bff;
+  padding: 18px 40px;
+  font-size: 20px;
+  background: linear-gradient(
+    135deg,
+    #1a2a6c,
+    #2b324c
+  ); /* Dunklerer Button-Farbverlauf */
   color: white;
-  border: none;
-  border-radius: 5px;
+  border: 1px solid #37474f; /* Rand für bessere Definition */
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 
   &:hover {
-    background-color: #0056b3;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
   }
 `;
 
@@ -65,7 +77,7 @@ function Home() {
   };
 
   const redirectToLogin = () => {
-    navigate("/login"); // Oder "/discord-login", wenn du einen separaten Discord-Login-Pfad hast
+    navigate("/login");
   };
 
   return (
@@ -77,7 +89,6 @@ function Home() {
           Überblick über Ihre Ticket-Historie.
         </Description>
         <CallToAction>Einblick in Ihre vergangenen Anliegen.</CallToAction>
-
         <ActionButton
           onClick={isLoggedIn ? redirectToDashboard : redirectToLogin}
         >
