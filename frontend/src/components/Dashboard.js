@@ -106,6 +106,25 @@ const CloseButton = styled.button`
   color: #ecf0f1;
 `;
 
+const StatusIndicator = styled.div`
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-left: 8px;
+  background-color: ${(props) => {
+    switch (props.status) {
+      case "online":
+        return "#43b581"; // Grün
+      case "idle":
+        return "#faa61a"; // Gelb
+      case "dnd":
+        return "#f04747"; // Rot
+      case "offline":
+      default:
+        return "#747f8d"; // Grau
+    }
+  }};
+`;
 function Dashboard() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -119,6 +138,7 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [modalContent, setModalContent] = useState(null);
+  const [status, setStatus] = useState("offline");
 
   useEffect(() => {
     if (!username) {
@@ -140,6 +160,7 @@ function Dashboard() {
       ])
         .then(([roleResponse, ticketsResponse]) => {
           setHasRole(roleResponse.data.hasRole);
+          setStatus(roleResponse.data.status); // Online-Status setzen
           let fetchedTickets = ticketsResponse.data;
           if (!roleResponse.data.hasRole) {
             fetchedTickets = fetchedTickets.filter((ticket) =>
@@ -183,6 +204,7 @@ function Dashboard() {
       <UserInfo>
         {avatar && <Avatar src={avatar} alt="Avatar" />}
         <h1>Willkommen, {username}!</h1>
+        <StatusIndicator status={status} />
       </UserInfo>
 
       <p>

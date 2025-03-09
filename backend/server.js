@@ -12,7 +12,11 @@ const port = 3000;
 
 // Discord-Bot initialisieren
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildPresences,
+  ], // GuildPresences hinzugefügt
 });
 
 client.once("ready", () => {
@@ -100,7 +104,7 @@ app.get("/callback", async (req, res) => {
   }
 });
 
-// Rolle prüfen
+// Rolle prüfen und Online-Status abrufen
 app.get("/check-role/:userId", async (req, res) => {
   const { userId } = req.params;
   const guildId = process.env.GUILD_ID;
@@ -114,12 +118,17 @@ app.get("/check-role/:userId", async (req, res) => {
       const hasRequiredRole = member.roles.cache.some(
         (role) => role.name === requiredRoleName
       );
-      res.json({ hasRole: hasRequiredRole });
+      const status = member.presence ? member.presence.status : "offline"; // Online-Status abrufen
+
+      res.json({ hasRole: hasRequiredRole, status: status });
     } else {
       res.status(404).json({ error: "Benutzer nicht gefunden." });
     }
   } catch (error) {
-    console.error("Fehler beim Abrufen der Benutzerrolle:", error);
+    console.error(
+      "Fehler beim Abrufen der Benutzerrolle und des Status:",
+      error
+    );
     res.status(500).json({ error: "Serverfehler." });
   }
 });
