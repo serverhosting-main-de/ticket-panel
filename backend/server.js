@@ -6,9 +6,21 @@ const cors = require("cors");
 const { Client, GatewayIntentBits } = require("discord.js");
 const fs = require("fs").promises;
 const path = require("path");
+const http = require("http");
+const { Server } = require("socket.io");
 
 const app = express();
 const port = 3000;
+
+// HTTP Server für Socket.io
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "https://tickets.wonder-craft.de",
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
 
 // Discord-Bot initialisieren
 const client = new Client({
@@ -16,7 +28,7 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildPresences,
-  ], // GuildPresences hinzugefügt
+  ],
 });
 
 client.once("ready", () => {
@@ -40,7 +52,7 @@ app.use(
     resave: false,
     saveUninitialized: true,
     cookie: {
-      secure: true, // In Produktion immer true setzen
+      secure: true,
       sameSite: "none",
       httpOnly: true,
     },
@@ -58,7 +70,6 @@ app.get("/callback", async (req, res) => {
   const { code } = req.query;
 
   try {
-    // Token-Anfrage an Discord
     const tokenResponse = await axios.post(
       "https://discord.com/api/oauth2/token",
       new URLSearchParams({
@@ -75,7 +86,6 @@ app.get("/callback", async (req, res) => {
 
     const { access_token } = tokenResponse.data;
 
-    // Benutzerdaten von Discord abrufen
     const userResponse = await axios.get("https://discord.com/api/users/@me", {
       headers: { authorization: `Bearer ${access_token}` },
     });
@@ -88,7 +98,6 @@ app.get("/callback", async (req, res) => {
       ? `https://cdn.discordapp.com/avatars/${userIdDiscord}/${avatarHash}.png`
       : null;
 
-    // Weiterleitung zur Dashboard-Seite mit Benutzerdaten
     res.redirect(
       `https://tickets.wonder-craft.de/dashboard/?userId=${req.session.userId}&username=${req.session.username}&avatar=${avatarUrl}`
     );
@@ -118,7 +127,7 @@ app.get("/check-role/:userId", async (req, res) => {
       const hasRequiredRole = member.roles.cache.some(
         (role) => role.name === requiredRoleName
       );
-      const status = member.presence ? member.presence.status : "offline"; // Online-Status abrufen
+      const status = member.presence ? member.presence.status : "offline";
 
       res.json({ hasRole: hasRequiredRole, status: status });
     } else {
@@ -142,8 +151,8 @@ app.get("/tickets", async (req, res) => {
     const ticketFiles = files.filter((file) => file.endsWith(".html"));
     const tickets = ticketFiles.map((file) => ({
       fileName: file,
-      title: file.replace(".html", "").replace(/_/g, " "), // Beispiel: Dateinamen in Titel umwandeln
-      date: new Date().toLocaleDateString(), // Beispiel: Aktuelles Datum als Datum
+      title: file.replace(".html", "").replace(/_/g, " "),
+      date: new Date().toLocaleDateString(),
     }));
 
     res.json(tickets);
@@ -166,7 +175,49 @@ app.get("/ticket-content/:fileName", async (req, res) => {
   }
 });
 
+// WebSocket-Verbindung
+const ticketViewers = {};
+const userAvatars = {}; // Objekt zum Speichern der Avatar-Hashes
+
+io.on("connection", (socket) => {
+  console.log("Client verbunden");
+
+  socket.on("ticketOpened", (ticketId, userId, avatarHash) => {
+    if (!ticketViewers[ticketId]) {
+      ticketViewers[ticketId] = []; // Korrigierte Zeile
+    }
+    if (!ticketViewers[ticketId].includes(userId)) {
+      ticketViewers[ticketId].push(userId);
+      userAvatars[userId] = avatarHash; // Avatar-Hash speichern
+    }
+    io.emit(
+      "updateTicketViewers",
+      ticketId,
+      ticketViewers[ticketId],
+      userAvatars
+    ); // userAvatars senden
+  });
+
+  socket.on("ticketClosed", (ticketId, userId) => {
+    if (ticketViewers[ticketId]) {
+      ticketViewers[ticketId] = ticketViewers[ticketId].filter(
+        (id) => id !== userId
+      );
+      io.emit(
+        "updateTicketViewers",
+        ticketId,
+        ticketViewers[ticketId],
+        userAvatars
+      ); // userAvatars senden
+    }
+  });
+
+  socket.on("disconnect", () => {
+    console.log("Client getrennt");
+  });
+});
+
 // Server starten
-app.listen(port, () => {
+server.listen(port, () => {
   console.log(`Backend läuft auf Port ${port}`);
 });

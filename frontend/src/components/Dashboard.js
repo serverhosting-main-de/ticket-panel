@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import styled from "styled-components";
+import io from "socket.io-client";
 
 const DashboardContainer = styled.div`
   padding: 30px;
@@ -15,6 +16,7 @@ const UserInfo = styled.div`
   display: flex;
   align-items: center;
   margin-bottom: 30px;
+  position: relative;
 `;
 
 const Avatar = styled.img`
@@ -110,21 +112,25 @@ const StatusIndicator = styled.div`
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  margin-left: 8px;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  transform: translate(30%, 30%);
   background-color: ${(props) => {
     switch (props.status) {
       case "online":
-        return "#43b581"; // Grün
+        return "#43b581";
       case "idle":
-        return "#faa61a"; // Gelb
+        return "#faa61a";
       case "dnd":
-        return "#f04747"; // Rot
+        return "#f04747";
       case "offline":
       default:
-        return "#747f8d"; // Grau
+        return "#747f8d";
     }
   }};
 `;
+
 function Dashboard() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -139,6 +145,9 @@ function Dashboard() {
   const [error, setError] = useState(null);
   const [modalContent, setModalContent] = useState(null);
   const [status, setStatus] = useState("offline");
+  const [socket, setSocket] = useState(null);
+  const [ticketViewers, setTicketViewers] = useState({});
+  const [currentTicketFileName, setCurrentTicketFileName] = useState(null); // Add this line
 
   useEffect(() => {
     if (!username) {
@@ -160,14 +169,8 @@ function Dashboard() {
       ])
         .then(([roleResponse, ticketsResponse]) => {
           setHasRole(roleResponse.data.hasRole);
-          setStatus(roleResponse.data.status); // Online-Status setzen
-          let fetchedTickets = ticketsResponse.data;
-          if (!roleResponse.data.hasRole) {
-            fetchedTickets = fetchedTickets.filter((ticket) =>
-              ticket.fileName.includes(userId)
-            );
-          }
-          setTickets(fetchedTickets);
+          setStatus(roleResponse.data.status);
+          setTickets(ticketsResponse.data);
           setLoading(false);
         })
         .catch(() => {
@@ -177,19 +180,46 @@ function Dashboard() {
           setLoading(false);
         });
     }
+
+    const newSocket = io("https://backendtickets.wonder-craft.de");
+    setSocket(newSocket);
+
+    newSocket.on("updateTicketViewers", (ticketId, viewers, avatars) => {
+      setTicketViewers((prevViewers) => ({
+        ...prevViewers,
+        [ticketId]: { viewers, avatars },
+      }));
+    });
+
+    return () => {
+      newSocket.disconnect();
+    };
   }, [username, userId, avatar, navigate]);
 
-  const openTicketChat = (ticketFileName) => {
+  const openTicketChat = (ticketFileName, ticketId) => {
     axios
       .get(
         `https://backendtickets.wonder-craft.de/ticket-content/${ticketFileName}`
       )
       .then((response) => {
         setModalContent(response.data);
+        setCurrentTicketFileName(ticketFileName); // Store the current ticket file name
+        socket.emit(
+          "ticketOpened",
+          ticketId,
+          userId,
+          avatar?.split("/").pop().split(".")[0]
+        );
       });
   };
 
-  const closeModal = () => setModalContent(null);
+  const closeModal = () => {
+    if (currentTicketFileName) {
+      socket.emit("ticketClosed", currentTicketFileName, userId);
+      setCurrentTicketFileName(null); // Reset currentTicketFileName after closing
+    }
+    setModalContent(null);
+  };
 
   if (loading) {
     return <DashboardContainer>Lade Daten...</DashboardContainer>;
@@ -227,17 +257,40 @@ function Dashboard() {
               <TableCell>
                 <strong>Aktion</strong>
               </TableCell>
+              <TableCell>
+                <strong>Aktuelle Bearbeiter</strong>
+              </TableCell>
             </TableRow>
           </TableHeader>
           <tbody>
             {tickets.map((ticket) => (
-              <TableRow key={ticket.id}>
+              <TableRow key={ticket.fileName}>
                 <TableCell>{ticket.title}</TableCell>
                 <TableCell>{ticket.date}</TableCell>
                 <TableCell>
-                  <ActionButton onClick={() => openTicketChat(ticket.fileName)}>
+                  <ActionButton
+                    onClick={() =>
+                      openTicketChat(ticket.fileName, ticket.fileName)
+                    }
+                  >
                     Anzeigen
                   </ActionButton>
+                </TableCell>
+                <TableCell>
+                  {ticketViewers[ticket.fileName]?.viewers?.map((viewerId) => (
+                    <Avatar
+                      key={viewerId}
+                      src={`https://cdn.discordapp.com/avatars/${viewerId}/${
+                        ticketViewers[ticket.fileName]?.avatars[viewerId]
+                      }.png`}
+                      alt="Avatar"
+                      style={{
+                        width: "30px",
+                        height: "30px",
+                        marginRight: "5px",
+                      }}
+                    />
+                  ))}
                 </TableCell>
               </TableRow>
             ))}
