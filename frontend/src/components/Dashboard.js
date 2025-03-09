@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import styled from "styled-components";
 import axios from "axios";
+import styled from "styled-components";
 
-// Styled Components für das Design
 const DashboardContainer = styled.div`
   padding: 20px;
-  font-family: sans-serif;
+  font-family: Arial, sans-serif;
 `;
 
 const UserInfo = styled.div`
@@ -22,18 +21,28 @@ const Avatar = styled.img`
   margin-right: 10px;
 `;
 
-const TicketList = styled.ul`
-  list-style: none;
-  padding: 0;
+const Table = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
 `;
 
-const TicketItem = styled.li`
-  padding: 10px;
-  border-bottom: 1px solid #eee;
-  cursor: pointer;
-  &:hover {
+const TableHeader = styled.thead`
+  background-color: #f4f4f4;
+`;
+
+const TableRow = styled.tr`
+  &:nth-child(even) {
     background-color: #f9f9f9;
   }
+  &:hover {
+    background-color: #ececec;
+  }
+`;
+
+const TableCell = styled.td`
+  padding: 10px;
+  border: 1px solid #ddd;
 `;
 
 const Modal = styled.div`
@@ -46,26 +55,16 @@ const Modal = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-
-  /* Globale CSS-Regeln für den inneren HTML-Inhalt des Modals */
-  & * {
-    color: #d4d4d4 !important; /* Helle Textfarbe für alle Elemente im Modal */
-  }
-
-  & body {
-    background-color: #282828 !important; /* Dunklere Hintergrundfarbe für das Modal */
-  }
 `;
 
 const ModalContent = styled.div`
-  background-color: #282828 !important; /* Dunklere Hintergrundfarbe für das Modal */
+  background-color: white;
   padding: 20px;
   border-radius: 8px;
   width: 80%;
   max-height: 80%;
   overflow-y: auto;
   position: relative;
-  color: #d4d4d4 !important; /* Helle Textfarbe für das Modal */
 `;
 
 const CloseButton = styled.button`
@@ -85,7 +84,7 @@ function Dashboard() {
   const username = searchParams.get("username");
   const userId = searchParams.get("userId");
   const avatar = searchParams.get("avatar");
-  const [tickets, setTickets] = useState();
+  const [tickets, setTickets] = useState([]);
   const [hasRole, setHasRole] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -112,7 +111,7 @@ function Dashboard() {
         .then(([roleResponse, ticketsResponse]) => {
           setHasRole(roleResponse.data.hasRole);
           let fetchedTickets = ticketsResponse.data;
-          if (!roleResponse.data.hasRole && userId) {
+          if (!roleResponse.data.hasRole) {
             fetchedTickets = fetchedTickets.filter((ticket) =>
               ticket.fileName.includes(userId)
             );
@@ -120,8 +119,7 @@ function Dashboard() {
           setTickets(fetchedTickets);
           setLoading(false);
         })
-        .catch((error) => {
-          console.error("Fehler beim Laden der Daten:", error);
+        .catch(() => {
           setError(
             "Fehler beim Laden der Daten. Bitte versuche es später noch einmal."
           );
@@ -137,15 +135,10 @@ function Dashboard() {
       )
       .then((response) => {
         setModalContent(response.data);
-      })
-      .catch((error) => {
-        console.error("Fehler beim Laden des Ticket-Inhalts:", error);
       });
   };
 
-  const closeModal = () => {
-    setModalContent(null);
-  };
+  const closeModal = () => setModalContent(null);
 
   if (loading) {
     return <DashboardContainer>Lade Daten...</DashboardContainer>;
@@ -159,29 +152,45 @@ function Dashboard() {
     <DashboardContainer>
       <UserInfo>
         {avatar && <Avatar src={avatar} alt="Avatar" />}
-        <h1>Willkommen im Dashboard, {username}!</h1>
+        <h1>Willkommen, {username}!</h1>
       </UserInfo>
 
-      {hasRole !== null && (
-        <p>
-          {hasRole
-            ? "Du hast Admin/Supporter Rechte."
-            : "Du hast Benutzer Rechte."}
-        </p>
-      )}
+      <p>
+        {hasRole
+          ? "Du hast Admin/Supporter Rechte."
+          : "Du hast Benutzer Rechte."}
+      </p>
 
       <h2>Deine Tickets</h2>
       {tickets.length > 0 ? (
-        <TicketList>
-          {tickets.map((ticket) => (
-            <TicketItem
-              key={ticket.id}
-              onClick={() => openTicketChat(ticket.fileName)}
-            >
-              {ticket.title} ({ticket.date})
-            </TicketItem>
-          ))}
-        </TicketList>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableCell>
+                <strong>Titel</strong>
+              </TableCell>
+              <TableCell>
+                <strong>Datum</strong>
+              </TableCell>
+              <TableCell>
+                <strong>Aktion</strong>
+              </TableCell>
+            </TableRow>
+          </TableHeader>
+          <tbody>
+            {tickets.map((ticket) => (
+              <TableRow key={ticket.id}>
+                <TableCell>{ticket.title}</TableCell>
+                <TableCell>{ticket.date}</TableCell>
+                <TableCell>
+                  <button onClick={() => openTicketChat(ticket.fileName)}>
+                    Anzeigen
+                  </button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </tbody>
+        </Table>
       ) : (
         <p>Keine Tickets gefunden.</p>
       )}
