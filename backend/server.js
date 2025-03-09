@@ -118,7 +118,7 @@ app.get("/callback", async (req, res) => {
         code,
         grant_type: "authorization_code",
         redirect_uri: process.env.DISCORD_REDIRECT_URI,
-        scope: "identify guilds",
+        scope: "identify+guilds",
       }).toString(),
       {
         headers: {
@@ -143,8 +143,10 @@ app.get("/callback", async (req, res) => {
     req.session.username = discordUser.username;
     req.session.avatar = `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`;
 
-    // 4. Weiterleiten (ohne Query-Parameter)
-    res.redirect("https://tickets.wonder-craft.de/dashboard");
+    // 4. Weiterleiten mit Benutzerdaten als Query-Parameter
+    res.redirect(
+      `https://tickets.wonder-craft.de/dashboard?username=${discordUser.username}&userId=${discordUser.id}&avatar=${discordUser.avatar}`
+    );
   } catch (error) {
     console.error("Fehler beim Discord OAuth2 Callback:", error);
     const errorMessage = error.response
