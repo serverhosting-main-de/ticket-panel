@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import styled from "styled-components";
 import io from "socket.io-client";
@@ -123,7 +123,6 @@ const CloseButton = styled.button`
 // Haupt-Dashboard-Komponente
 function Dashboard() {
   const navigate = useNavigate();
-  const location = useLocation();
 
   const [tickets, setTickets] = useState([]);
   const [hasRole, setHasRole] = useState(null);
@@ -139,30 +138,28 @@ function Dashboard() {
   useEffect(() => {
     // Funktion um LocalStorage zu handhaben
     const handleLocalStorage = () => {
-      const searchParams = new URLSearchParams(location.search);
-      const urlUsername = searchParams.get("username");
-      const urlUserId = searchParams.get("userId");
-      const urlAvatar = searchParams.get("avatar");
-
-      if (urlUsername && urlUserId) {
-        // Daten aus URL in localStorage speichern
-        localStorage.setItem("username", urlUsername);
-        localStorage.setItem("userId", urlUserId);
-        localStorage.setItem("avatar", urlAvatar || ""); // Standardwert, falls avatar null ist
-        localStorage.setItem("loggedIn", "true");
-        setIsLoggedIn(true); // Setze isLoggedIn, wenn Daten in localStorage gespeichert werden.
-        setUserData({
-          //setze UserData
-          username: urlUsername,
-          userId: urlUserId,
-          avatar: urlAvatar,
-        });
-      }
       const storedLoggedIn = localStorage.getItem("loggedIn");
       if (storedLoggedIn !== "true") {
-        //Wenn nicht eingeloggt, dann zur Login-Seite
-        navigate("/login");
+        navigate("/login"); // Umleiten, wenn nicht eingeloggt
+        return false;
       }
+
+      // Benutzerdaten aus localStorage holen (nur username, userId, avatar)
+      const storedUsername = localStorage.getItem("username");
+      const storedUserId = localStorage.getItem("userId");
+      const storedAvatar = localStorage.getItem("avatar");
+
+      // Lokale Daten verwenden, wenn vorhanden
+      if (storedUsername && storedUserId) {
+        setUserData({
+          username: storedUsername,
+          userId: storedUserId,
+          avatar: storedAvatar, // Kann null sein
+        });
+        setIsLoggedIn(true);
+        return true;
+      }
+      return false; //Kehre zu false zurück
     };
 
     const checkAuthStatus = async () => {
@@ -198,19 +195,19 @@ function Dashboard() {
           }
         } else {
           //Wenn /api/auth/status nicht isLoggedIn, dann trotzdem localstorage checken
-          handleLocalStorage();
+          if (!handleLocalStorage()) return; //Wenn handleLocalStorage false, dann return.
         }
       } catch (error) {
         console.error("Authentication check failed:", error);
         //Auch hier LocalStorage checken.
-        handleLocalStorage();
+        if (!handleLocalStorage()) return; //Wenn handleLocalStorage false, dann return.
       } finally {
         console.log("checkAuthStatus beendet");
         setLoading(false); // Ladezustand IMMER beenden
       }
     };
 
-    checkAuthStatus(); // Auth-Status überprüfen
+    checkAuthStatus();
 
     const newSocket = io("https://backendtickets.wonder-craft.de");
     setSocket(newSocket);
@@ -229,7 +226,7 @@ function Dashboard() {
     return () => {
       newSocket.disconnect();
     };
-  }, [navigate, location]); // location als Abhängigkeit hinzufügen
+  }, [navigate]); // Abhängigkeit: navigate
 
   const openTicketChat = async (ticketFileName, ticketId) => {
     try {
@@ -254,7 +251,6 @@ function Dashboard() {
 
       // Ticket als geöffnet markieren (für Viewer-Anzeige)
       if (socket && userData) {
-        // Stelle sicher, dass socket *und* userData vorhanden sind
         socket.emit(
           "ticketOpened",
           ticketId,
@@ -262,7 +258,7 @@ function Dashboard() {
           userData.avatar?.split("/").pop().split(".")[0]
         );
       } else if (socket) {
-        // Fallback, falls userData noch nicht gesetzt ist (obwohl es sollte)
+        // Fallback, falls userData noch nicht gesetzt ist
         const storedUserId = localStorage.getItem("userId");
         const storedAvatar = localStorage.getItem("avatar");
         socket.emit(
@@ -280,8 +276,8 @@ function Dashboard() {
 
   const closeModal = () => {
     setModalContent(null);
+    // Sende ticketClosed, wenn Modal geschlossen wird.
     if (socket && userData) {
-      //sichergehen, dass Socket und Userdaten da sind.
       const currentTicket = tickets.find(
         (t) => t.fileName === modalContent?.ticketId
       );
@@ -314,12 +310,13 @@ function Dashboard() {
       {isLoggedIn ? (
         <>
           <UserInfo>
-            {userData?.avatar && <Avatar src={userData.avatar} alt="Avatar" />}
-            {/* Fallback-Avatar, falls userData.avatar nicht verfügbar */}
-            {!userData?.avatar && localStorage.getItem("avatar") && (
-              <Avatar src={localStorage.getItem("avatar")} alt="Avatar" />
+            {/* Bevorzugt Avatar aus userData, dann aus localStorage, sonst kein Avatar */}
+            {(userData?.avatar || localStorage.getItem("avatar")) && (
+              <Avatar
+                src={userData?.avatar || localStorage.getItem("avatar")}
+                alt="Avatar"
+              />
             )}
-
             <h1>
               Willkommen,{" "}
               {userData

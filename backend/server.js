@@ -44,8 +44,8 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildPresences,
-    GatewayIntentBits.MessageContent, // Benötigt für Nachrichten
-    GatewayIntentBits.GuildMessages, // Benötigt für Nachrichten
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMessages,
   ],
   partials: [
     Partials.Channel,
@@ -63,7 +63,7 @@ client.login(process.env.DISCORD_TOKEN);
 
 // --- Middleware ---
 // CORS (angepasst für Entwicklung und Produktion)
-const isProduction = true;
+const isProduction = process.env.NODE_ENV === "production";
 app.use(
   cors({
     origin: isProduction
@@ -95,7 +95,7 @@ app.get("/login", (req, res) => {
   const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${
     process.env.DISCORD_CLIENT_ID
   }&redirect_uri=${encodeURIComponent(
-    "https://backendtickets.wonder-craft.de/callback"
+    process.env.DISCORD_REDIRECT_URI // Nutze die Umgebungsvariable
   )}&response_type=code&scope=identify+guilds`;
   res.redirect(discordAuthUrl);
 });
@@ -103,12 +103,13 @@ app.get("/login", (req, res) => {
 // Callback (Discord OAuth2)
 app.get("/callback", async (req, res) => {
   const code = req.query.code;
+
   if (!code) {
     return res.status(400).send("Kein Autorisierungscode erhalten.");
   }
 
   try {
-    // Token austauschen
+    // 1. Token austauschen
     const tokenResponse = await axios.post(
       "https://discord.com/api/oauth2/token",
       new URLSearchParams({
@@ -116,9 +117,9 @@ app.get("/callback", async (req, res) => {
         client_secret: process.env.DISCORD_CLIENT_SECRET,
         code,
         grant_type: "authorization_code",
-        redirect_uri: "https://backendtickets.wonder-craft.de/callback",
+        redirect_uri: process.env.DISCORD_REDIRECT_URI, // MUSS exakt mit Discord Developer Portal übereinstimmen!
         scope: "identify guilds",
-      }).toString(),
+      }).toString(), // Wichtig: .toString()
       {
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
@@ -128,7 +129,7 @@ app.get("/callback", async (req, res) => {
 
     const accessToken = tokenResponse.data.access_token;
 
-    // Benutzerinformationen abrufen
+    // 2. Benutzerinformationen abrufen
     const userResponse = await axios.get("https://discord.com/api/users/@me", {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -137,38 +138,48 @@ app.get("/callback", async (req, res) => {
 
     const discordUser = userResponse.data;
 
-    // Benutzer in Session speichern
+    // 3. Benutzer in Session speichern (WICHTIG für die Authentifizierung!)
     req.session.userId = discordUser.id;
     req.session.username = discordUser.username;
     req.session.avatar = `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`;
 
-    // Weiterleitung zum Dashboard
-    res.redirect(`https://tickets.wonder-craft.de/dashboard`); // Weiterleitung ohne query parameter
+    // 4. URL für Weiterleitung erstellen und Query-Parameter anhängen
+    const avatarUrl = discordUser.avatar
+      ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`
+      : null; // Fallback, falls kein Avatar
+
+    const redirectUrl = new URL("https://tickets.wonder-craft.de/dashboard"); // Basis-URL des Dashboards
+    redirectUrl.searchParams.append("userId", discordUser.id); // User-ID
+    redirectUrl.searchParams.append("username", discordUser.username); // Benutzername
+    if (avatarUrl) {
+      redirectUrl.searchParams.append("avatar", avatarUrl); // Avatar-URL (nur wenn vorhanden)
+    }
+
+    // 5. Weiterleiten
+    res.redirect(redirectUrl.toString()); // WICHTIG: .toString()!
   } catch (error) {
     console.error("Fehler beim Discord OAuth2 Callback:", error);
     let errorMessage = "Ein unbekannter Fehler ist aufgetreten.";
+
     if (error.response) {
-      // Discord API Fehler
+      // Discord API Fehler (detailliertere Fehlermeldung)
       errorMessage = `Discord API Fehler: ${error.response.status} - ${
         error.response.data ? JSON.stringify(error.response.data) : ""
       }`;
     } else if (error.request) {
       // Anfrage wurde gesendet, aber keine Antwort erhalten
       errorMessage = "Keine Antwort von Discord API erhalten.";
-    } //sonst bleibt die generelle Fehlermeldung
+    }
+    // ... (andere Fehlerfälle, z.B. Netzwerkfehler) ...
 
-    res.status(500).send(errorMessage);
+    res.status(500).send(errorMessage); // Sende Fehler an den Client
   }
 });
 
-// --- Authentifizierungsstatus prüfen (NEU) ---
+// --- Authentifizierungsstatus prüfen ---
 app.get("/api/auth/status", (req, res) => {
-  console.log("/api/auth/status aufgerufen"); // DEBUG
-  console.log("req.session:", req.session); // DEBUG
-
   if (req.session.userId) {
     // Benutzer ist eingeloggt
-    console.log("Benutzer ist eingeloggt. Sende Antwort."); // DEBUG
     res.json({
       isLoggedIn: true,
       userId: req.session.userId,
@@ -176,7 +187,6 @@ app.get("/api/auth/status", (req, res) => {
       avatar: req.session.avatar,
     });
   } else {
-    console.log("Benutzer ist NICHT eingeloggt. Sende 401."); // DEBUG
     res.status(401).json({ isLoggedIn: false });
   }
 });
@@ -293,9 +303,11 @@ app.get("/api/tickets/:ticketId/chat", async (req, res) => {
     const channel = await client.channels.fetch(channelId);
     if (!channel || channel.type !== 0) {
       // 0 = TextChannel, 11=PublicThread
-      return res.status(404).json({
-        error: "Discord channel not found or not a text channel/thread.",
-      });
+      return res
+        .status(404)
+        .json({
+          error: "Discord channel not found or not a text channel/thread.",
+        });
     }
 
     // 3. Nachrichten abrufen
