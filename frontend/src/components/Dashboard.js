@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import styled from "styled-components";
 import io from "socket.io-client";
-
-// Styled Components (für das Styling)
+// Styled Components (für das Styling - bleiben gleich)
 const DashboardContainer = styled.div`
   padding: 30px;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
@@ -58,6 +57,7 @@ const TableRow = styled.tr`
   &:nth-child(even) {
     background-color: rgba(0, 0, 0, 0.2);
   }
+
   &:hover {
     background-color: rgba(0, 0, 0, 0.4);
   }
@@ -77,14 +77,12 @@ const ActionButton = styled.button`
   cursor: pointer;
   transition: background-color 0.3s ease, transform 0.2s ease;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
-
   &:hover {
     background-color: #2980b9;
     transform: translateY(-2px);
   }
 `;
 
-// Modal-Komponenten
 const Modal = styled.div`
   position: fixed;
   top: 0;
@@ -122,68 +120,84 @@ const CloseButton = styled.button`
 `;
 
 // Haupt-Dashboard-Komponente
-function Dashboard() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const searchParams = new URLSearchParams(location.search);
-  const username =
-    searchParams.get("username") || localStorage.getItem("username");
-  const userId = searchParams.get("userId") || localStorage.getItem("userId");
-  const avatar = searchParams.get("avatar") || localStorage.getItem("avatar");
 
+function Dashboard() {
+  const navigate = useNavigate();
   const [tickets, setTickets] = useState([]);
   const [hasRole, setHasRole] = useState(null);
-  const [status, setStatus] = useState("offline"); //Online Status
-  const [socket, setSocket] = useState(null); //Socket
-  const [modalContent, setModalContent] = useState(null); //Modal State, jetzt für formatierten Chat-Verlauf
-  const [ticketViewers, setTicketViewers] = useState({}); // Ticket-Viewer-State
+  const [status, setStatus] = useState("offline"); // Online/Offline Status
+  const [socket, setSocket] = useState(null);
+  const [modalContent, setModalContent] = useState(null); // Für den Chat-Verlauf
+  const [ticketViewers, setTicketViewers] = useState({}); // Wer sieht welches Ticket an
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // Login-Status
+  const [userData, setUserData] = useState(null); // Benutzerdaten
 
   useEffect(() => {
-    if (!username) {
-      navigate("/login");
-      return;
-    }
+    const checkAuthStatus = async () => {
+      console.log("checkAuthStatus gestartet");
 
-    localStorage.setItem("username", username);
-    localStorage.setItem("loggedIn", "true");
-    localStorage.setItem("userId", userId);
-    localStorage.setItem("avatar", avatar);
+      try {
+        const response = await axios.get(
+          "https://backendtickets.wonder-craft.de/api/auth/status",
+          { withCredentials: true }
+        );
 
-    const fetchData = async () => {
-      if (userId) {
-        try {
-          const roleResponse = await axios.get(
-            `https://backendtickets.wonder-craft.de/check-role/${userId}`
-          );
-          setHasRole(roleResponse.data.hasRole);
-          setStatus(roleResponse.data.status);
+        console.log("checkAuthStatus Antwort:", response.data);
 
-          const ticketsResponse = await axios.get(
-            "https://backendtickets.wonder-craft.de/tickets"
-          );
-          setTickets(ticketsResponse.data);
-        } catch (error) {
-          console.error("Error:", error);
-          setError(
-            "Fehler beim Laden der Daten. Bitte versuche es später noch einmal."
-          );
-        } finally {
-          setLoading(false);
+        if (response.data.isLoggedIn) {
+          setIsLoggedIn(true);
+          setUserData(response.data); // Benutzerdaten speichern
+          // Daten abrufen (Tickets, Rolle, Status)
+          try {
+            const roleResponse = await axios.get(
+              `https://backendtickets.wonder-craft.de/check-role/${response.data.userId}`
+            );
+            setHasRole(roleResponse.data.hasRole);
+            setStatus(roleResponse.data.status);
+
+            const ticketsResponse = await axios.get(
+              "https://backendtickets.wonder-craft.de/tickets"
+            );
+            setTickets(ticketsResponse.data);
+          } catch (error) {
+            console.error("Fehler beim Abrufen von Rolle/Tickets:", error);
+            setError(
+              "Fehler beim Laden von Daten. Bitte versuche es später noch einmal."
+            );
+          }
+        } else {
+          console.log("checkAuthStatus: Nicht eingeloggt");
+          // Überprüfe localStorage
+          const storedLoggedIn = localStorage.getItem("loggedIn");
+          if (storedLoggedIn !== "true") {
+            navigate("/login"); // Umleiten, wenn nicht eingeloggt
+          } else {
+            setIsLoggedIn(true); //Wenn LocalStorage sagt das eingeloggt, dann isLoggedIn auf True
+          }
         }
+      } catch (error) {
+        console.error("Authentication check failed:", error);
+        // Überprüfe localStorage, auch bei Fehler
+        const storedLoggedIn = localStorage.getItem("loggedIn");
+        if (storedLoggedIn !== "true") {
+          navigate("/login"); // Umleiten, wenn nicht eingeloggt
+        } else {
+          setIsLoggedIn(true); //Wenn LocalStorage sagt das eingeloggt, dann isLoggedIn auf True
+        }
+      } finally {
+        console.log("checkAuthStatus beendet");
+        setLoading(false); // Ladezustand IMMER beenden, auch bei Fehler
       }
     };
 
-    fetchData();
-
+    checkAuthStatus();
     const newSocket = io("https://backendtickets.wonder-craft.de");
     setSocket(newSocket);
-
     newSocket.on("ticketsUpdated", (updatedTickets) => {
       setTickets(updatedTickets);
     });
-
     newSocket.on("updateTicketViewers", (ticketId, viewers, avatars) => {
       setTicketViewers((prevViewers) => ({
         ...prevViewers,
@@ -194,159 +208,200 @@ function Dashboard() {
     return () => {
       newSocket.disconnect();
     };
-  }, [username, userId, avatar, navigate]);
+  }, [navigate]); // Abhängigkeit: navigate
 
   const openTicketChat = async (ticketFileName, ticketId) => {
-    // 1. Chat-Verlauf vom Backend holen
     try {
       const response = await axios.get(
         `https://backendtickets.wonder-craft.de/api/tickets/${ticketId}/chat`
       );
       const chatHistory = response.data;
+      // Chat-Verlauf formatieren (HTML)
 
-      // 2. Chat-Verlauf formatieren (HTML)
       const formattedChatHistory = chatHistory
         .map(
           (msg) => `
-              <div>
+
+                <div>
+
                 <img src="${msg.avatar}" alt="Avatar" style="width: 20px; height: 20px; border-radius: 50%; margin-right: 5px;" />
+
                 <strong>${msg.author}</strong>: ${msg.content}
-              </div>
+
+                </div>
+
             `
         )
         .join("");
 
-      setModalContent(formattedChatHistory); //  Chatverlauf setzen
+      setModalContent(formattedChatHistory);
 
-      // Ticket als geöffnet markieren (für Viewer-Anzeige, wichtig für Updates)
-      if (socket) {
+      // Ticket als geöffnet markieren (für Viewer-Anzeige)
+
+      if (socket && userData) {
         socket.emit(
           "ticketOpened",
           ticketId,
-          userId,
-          avatar?.split("/").pop().split(".")[0]
+          userData.userId,
+          userData.avatar?.split("/").pop().split(".")[0]
         );
       }
     } catch (error) {
       console.error("Error fetching chat history:", error);
-      setModalContent("Fehler beim Laden des Chatverlaufs."); //  Fehlermeldung
+
+      setModalContent("Fehler beim Laden des Chatverlaufs.");
     }
   };
 
   const closeModal = () => {
     setModalContent(null);
-    //Sende ticketClosed, wenn Modal geschlossen wird.
-    if (socket) {
-      socket.emit(
-        "ticketClosed",
-        tickets.find((t) => t.fileName === modalContent?.ticketId)?.threadID,
-        userId
+
+    // Sende ticketClosed, wenn Modal geschlossen wird (und Socket und UserData vorhanden).
+
+    if (socket && userData) {
+      const currentTicket = tickets.find(
+        (t) => t.fileName === modalContent?.ticketId
       );
+
+      if (currentTicket) {
+        socket.emit("ticketClosed", currentTicket.threadID, userData.userId);
+      }
     }
   };
-
-  if (error) {
-    return <DashboardContainer>{error}</DashboardContainer>;
-  }
 
   if (loading) {
     return <DashboardContainer>Lade Daten...</DashboardContainer>;
   }
 
+  if (error) {
+    return <DashboardContainer>{error}</DashboardContainer>;
+  }
+
+  // Zeige Dashboard-Inhalt NUR, wenn isLoggedIn true ist.
+
   return (
     <DashboardContainer>
-      <UserInfo>
-        {avatar && <Avatar src={avatar} alt="Avatar" />}
-        <h1>Willkommen, {username}!</h1>
-        <StatusIndicator status={status} />
-      </UserInfo>
+      {isLoggedIn ? (
+        <>
+          <UserInfo>
+            {userData?.avatar && <Avatar src={userData.avatar} alt="Avatar" />}
 
-      <p>
-        {hasRole
-          ? "Du hast Admin/Supporter Rechte."
-          : "Du hast Benutzer Rechte."}
-      </p>
+            <h1>Willkommen, {userData ? userData.username : "Benutzer"}!</h1>
 
-      <h2>Deine Tickets</h2>
-      {tickets.length > 0 ? (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableCell>
-                <strong>Titel</strong>
-              </TableCell>
-              <TableCell>
-                <strong>Ersteller</strong>
-              </TableCell>
-              <TableCell>
-                <strong>Kategorie</strong>
-              </TableCell>
-              <TableCell>
-                <strong>Status</strong>
-              </TableCell>
-              <TableCell>
-                <strong>Geschlossen von</strong>
-              </TableCell>
-              <TableCell>
-                <strong>Geschlossen am</strong>
-              </TableCell>
-              <TableCell>
-                <strong>Aktion</strong>
-              </TableCell>
-              <TableCell>
-                <strong>Aktuelle Bearbeiter</strong>
-              </TableCell>
-            </TableRow>
-          </TableHeader>
-          <tbody>
-            {tickets.map((ticket) => (
-              <TableRow key={ticket.fileName}>
-                <TableCell>{ticket.title}</TableCell>
-                <TableCell>{ticket.creator}</TableCell>
-                <TableCell>{ticket.category}</TableCell>
-                <TableCell>{ticket.status}</TableCell>
-                <TableCell>{ticket.closedBy}</TableCell>
-                <TableCell>{ticket.closedAt}</TableCell>
-                <TableCell>
-                  <ActionButton
-                    onClick={() =>
-                      openTicketChat(ticket.fileName, ticket.fileName)
-                    }
-                  >
-                    Anzeigen
-                  </ActionButton>
-                </TableCell>
-                <TableCell>
-                  {ticketViewers[ticket.fileName]?.viewers?.map((viewerId) => (
-                    <Avatar
-                      key={viewerId}
-                      src={`https://cdn.discordapp.com/avatars/${viewerId}/${
-                        ticketViewers[ticket.fileName]?.avatars[viewerId]
-                      }.png`}
-                      alt="Avatar"
-                      style={{
-                        width: "30px",
-                        height: "30px",
-                        marginRight: "5px",
-                      }}
-                    />
-                  ))}
-                </TableCell>
-              </TableRow>
-            ))}
-          </tbody>
-        </Table>
+            <StatusIndicator status={status} />
+          </UserInfo>
+
+          <p>
+            {hasRole
+              ? "Du hast Admin/Supporter Rechte."
+              : "Du hast Benutzer Rechte."}
+          </p>
+
+          <h2>Deine Tickets</h2>
+
+          {tickets.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableCell>
+                    <strong>Titel</strong>
+                  </TableCell>
+
+                  <TableCell>
+                    <strong>Ersteller</strong>
+                  </TableCell>
+
+                  <TableCell>
+                    <strong>Kategorie</strong>
+                  </TableCell>
+
+                  <TableCell>
+                    <strong>Status</strong>
+                  </TableCell>
+
+                  <TableCell>
+                    <strong>Geschlossen von</strong>
+                  </TableCell>
+
+                  <TableCell>
+                    <strong>Geschlossen am</strong>
+                  </TableCell>
+
+                  <TableCell>
+                    <strong>Aktion</strong>
+                  </TableCell>
+
+                  <TableCell>
+                    <strong>Aktuelle Bearbeiter</strong>
+                  </TableCell>
+                </TableRow>
+              </TableHeader>
+
+              <tbody>
+                {tickets.map((ticket) => (
+                  <TableRow key={ticket.fileName}>
+                    <TableCell>{ticket.title}</TableCell>
+
+                    <TableCell>{ticket.creator}</TableCell>
+
+                    <TableCell>{ticket.category}</TableCell>
+
+                    <TableCell>{ticket.status}</TableCell>
+
+                    <TableCell>{ticket.closedBy}</TableCell>
+
+                    <TableCell>{ticket.closedAt}</TableCell>
+
+                    <TableCell>
+                      <ActionButton
+                        onClick={() =>
+                          openTicketChat(ticket.fileName, ticket.fileName)
+                        }
+                      >
+                        Anzeigen
+                      </ActionButton>
+                    </TableCell>
+
+                    <TableCell>
+                      {ticketViewers[ticket.fileName]?.viewers?.map(
+                        (viewerId) => (
+                          <Avatar
+                            key={viewerId}
+                            src={`https://cdn.discordapp.com/avatars/${viewerId}/${
+                              ticketViewers[ticket.fileName]?.avatars[viewerId]
+                            }.png`}
+                            alt="Avatar"
+                            style={{
+                              width: "30px",
+
+                              height: "30px",
+
+                              marginRight: "5px",
+                            }}
+                          />
+                        )
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </tbody>
+            </Table>
+          ) : (
+            <p>Keine Tickets gefunden.</p>
+          )}
+
+          {modalContent && (
+            <Modal>
+              <ModalContent>
+                <CloseButton onClick={closeModal}>×</CloseButton>
+
+                <div dangerouslySetInnerHTML={{ __html: modalContent }} />
+              </ModalContent>
+            </Modal>
+          )}
+        </>
       ) : (
-        <p>Keine Tickets gefunden.</p>
-      )}
-
-      {modalContent && (
-        <Modal>
-          <ModalContent>
-            <CloseButton onClick={closeModal}>×</CloseButton>
-            <div dangerouslySetInnerHTML={{ __html: modalContent }} />
-          </ModalContent>
-        </Modal>
+        <p>Nicht autorisiert, bitte einloggen.</p>
       )}
     </DashboardContainer>
   );

@@ -15,7 +15,7 @@ const port = process.env.PORT || 3000;
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "https://tickets.wonder-craft.de",
+    origin: "https://tickets.wonder-craft.de", // Erlaube nur dein Frontend
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -23,7 +23,7 @@ const io = new Server(server, {
 
 // --- MongoDB-Verbindung ---
 const mongoUrl = process.env.MONGO_URL;
-const dbName = "levelsystem";
+const dbName = "levelsystem"; // Deine Datenbank
 let db;
 
 async function connectToMongo() {
@@ -33,12 +33,12 @@ async function connectToMongo() {
     console.log("Connected to MongoDB");
   } catch (error) {
     console.error("Error connecting to MongoDB:", error);
-    process.exit(1);
+    process.exit(1); // Beende den Prozess bei einem kritischen Fehler
   }
 }
 connectToMongo();
 
-// --- Discord-Bot-Initialisierung (jetzt für Chat-History) ---
+// --- Discord-Bot-Initialisierung (für Chat-History) ---
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -62,36 +62,148 @@ client.once("ready", () => {
 client.login(process.env.DISCORD_TOKEN);
 
 // --- Middleware ---
-app.use(cors({ origin: "https://tickets.wonder-craft.de", credentials: true }));
+// CORS (angepasst für Entwicklung und Produktion)
+const isProduction = true;
+app.use(
+  cors({
+    origin: isProduction
+      ? "https://tickets.wonder-craft.de"
+      : "http://localhost:3001", // Erlaube dein lokales Frontend (Entwicklung)
+    credentials: true,
+  })
+);
+
+// Express Session (angepasst für Entwicklung und Produktion)
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: true, sameSite: "none", httpOnly: true },
+    cookie: {
+      secure: isProduction, // true in Produktion (HTTPS), false in lokaler Entwicklung
+      sameSite: isProduction ? "none" : "lax", // "lax" für lokale Entwicklung
+      httpOnly: true,
+    },
   })
 );
 app.use(express.json());
 
 // --- Routen ---
 
-// Login, Callback (wie zuvor, ohne Speichern des Access-Tokens)
+// Login (Discord OAuth2)
 app.get("/login", (req, res) => {
-  /* ... (dein bestehender Code) ... */
+  const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${
+    process.env.DISCORD_CLIENT_ID
+  }&redirect_uri=${encodeURIComponent(
+    process.env.DISCORD_REDIRECT_URI
+  )}&response_type=code&scope=identify%20guilds`;
+  res.redirect(discordAuthUrl);
 });
+
+// Callback (Discord OAuth2)
 app.get("/callback", async (req, res) => {
-  /* ... (dein bestehender Code) ... */
+  const code = req.query.code;
+  if (!code) {
+    return res.status(400).send("Kein Autorisierungscode erhalten.");
+  }
+
+  try {
+    // Token austauschen
+    const tokenResponse = await axios.post(
+      "https://discord.com/api/oauth2/token",
+      new URLSearchParams({
+        client_id: process.env.DISCORD_CLIENT_ID,
+        client_secret: process.env.DISCORD_CLIENT_SECRET,
+        code,
+        grant_type: "authorization_code",
+        redirect_uri: process.env.DISCORD_REDIRECT_URI,
+        scope: "identify guilds",
+      }).toString(),
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      }
+    );
+
+    const accessToken = tokenResponse.data.access_token;
+
+    // Benutzerinformationen abrufen
+    const userResponse = await axios.get("https://discord.com/api/users/@me", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    const discordUser = userResponse.data;
+
+    // Benutzer in Session speichern
+    req.session.userId = discordUser.id;
+    req.session.username = discordUser.username;
+    req.session.avatar = `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`;
+
+    // Weiterleitung zum Dashboard
+    res.redirect(`https://tickets.wonder-craft.de/dashboard`); // Weiterleitung ohne query parameter
+  } catch (error) {
+    console.error("Fehler beim Discord OAuth2 Callback:", error);
+    let errorMessage = "Ein unbekannter Fehler ist aufgetreten.";
+    if (error.response) {
+      // Discord API Fehler
+      errorMessage = `Discord API Fehler: ${error.response.status} - ${
+        error.response.data ? JSON.stringify(error.response.data) : ""
+      }`;
+    } else if (error.request) {
+      // Anfrage wurde gesendet, aber keine Antwort erhalten
+      errorMessage = "Keine Antwort von Discord API erhalten.";
+    } //sonst bleibt die generelle Fehlermeldung
+
+    res.status(500).send(errorMessage);
+  }
 });
 
-// KEIN /api/discord-token mehr!
+// --- Authentifizierungsstatus prüfen (NEU) ---
+app.get("/api/auth/status", (req, res) => {
+  console.log("/api/auth/status aufgerufen"); // DEBUG
+  console.log("req.session:", req.session); // DEBUG
 
-// Rolle prüfen
+  if (req.session.userId) {
+    // Benutzer ist eingeloggt
+    console.log("Benutzer ist eingeloggt. Sende Antwort."); // DEBUG
+    res.json({
+      isLoggedIn: true,
+      userId: req.session.userId,
+      username: req.session.username,
+      avatar: req.session.avatar,
+    });
+  } else {
+    console.log("Benutzer ist NICHT eingeloggt. Sende 401."); // DEBUG
+    res.status(401).json({ isLoggedIn: false });
+  }
+});
+
+// Rolle prüfen (Discord-Bot)
 app.get("/check-role/:userId", async (req, res) => {
-  /* ... (dein bestehender Code) ... */
+  const { userId } = req.params;
+  console.log("Check-role aufgerufen für userID: " + userId);
+  try {
+    const guild = await client.guilds.fetch(process.env.GUILD_ID);
+    const member = await guild.members.fetch(userId);
+    const hasRole = member.roles.cache.some(
+      (role) => role.name === process.env.REQUIRED_ROLE
+    );
+    const status = member.presence?.status || "offline"; // Standardmäßig "offline"
+    res.json({ hasRole, status });
+  } catch (error) {
+    console.error("Fehler beim Überprüfen der Rolle:", error);
+    res
+      .status(500)
+      .json({ error: "Fehler beim Abrufen der Benutzerinformationen." });
+  }
 });
 
 // Tickets abrufen
 app.get("/tickets", async (req, res) => {
+  console.log("Tickets werden abgerufen");
   try {
     const tickets = await db.collection("tickets").find({}).toArray();
     const formattedTickets = tickets.map((ticket) => ({
@@ -112,17 +224,58 @@ app.get("/tickets", async (req, res) => {
   }
 });
 
-// Channel-ID abrufen (wie gehabt)
+// Channel-ID abrufen
 app.get("/api/tickets/:ticketId/channel", async (req, res) => {
-  /* ... (dein bestehender Code) ... */
+  const { ticketId } = req.params;
+  try {
+    const objectId = new ObjectId(ticketId);
+    const ticket = await db.collection("tickets").findOne({ _id: objectId });
+    if (!ticket) {
+      return res.status(404).json({ error: "Ticket nicht gefunden." });
+    }
+    res.json({ channelId: ticket.threadID });
+  } catch (error) {
+    console.error("Fehler beim Abrufen der Channel-ID:", error);
+    res.status(500).json({ error: "Serverfehler." });
+  }
 });
 
-// Neue Tickets vom Java-Bot empfangen (wie gehabt)
+// Neue Tickets vom Java-Bot empfangen
 app.post("/api/tickets/new", async (req, res) => {
-  /* ... (dein bestehender Code) ... */
+  try {
+    const ticketData = req.body;
+    console.log("Neues Ticket empfangen:", ticketData);
+
+    // Validiere ticketData
+    if (
+      !ticketData ||
+      !ticketData.threadID ||
+      !ticketData.creator ||
+      !ticketData.category
+    ) {
+      console.error("Ungültige Ticketdaten:", ticketData);
+      return res.status(400).json({ error: "Ungültige Ticketdaten." });
+    }
+
+    // Daten in MongoDB speichern
+    const result = await db.collection("tickets").insertOne({
+      threadID: ticketData.threadID,
+      creator: ticketData.creator,
+      category: ticketData.category,
+      status: 0, // 0 für offen, 1 für geschlossen.  Direkt im Code, da vom Java-Bot nicht gesendet.
+      createdAt: new Date(), // Optional: Zeitstempel hinzufügen
+    });
+
+    console.log("Ticket in Datenbank gespeichert:", result.insertedId);
+    sendTicketUpdates(); // Socket.IO Update
+    res.status(201).json({ message: "Ticket erfolgreich gespeichert." });
+  } catch (error) {
+    console.error("Fehler beim Speichern des Tickets:", error);
+    res.status(500).json({ error: "Fehler beim Speichern des Tickets." });
+  }
 });
 
-// --- NEU: Chatverlauf abrufen (über Discord.js) ---
+// Chatverlauf abrufen (über Discord.js)
 app.get("/api/tickets/:ticketId/chat", async (req, res) => {
   const { ticketId } = req.params;
 
@@ -140,11 +293,9 @@ app.get("/api/tickets/:ticketId/chat", async (req, res) => {
     const channel = await client.channels.fetch(channelId);
     if (!channel || channel.type !== 0) {
       // 0 = TextChannel, 11=PublicThread
-      return res
-        .status(404)
-        .json({
-          error: "Discord channel not found or not a text channel/thread.",
-        });
+      return res.status(404).json({
+        error: "Discord channel not found or not a text channel/thread.",
+      });
     }
 
     // 3. Nachrichten abrufen
@@ -168,7 +319,7 @@ app.get("/api/tickets/:ticketId/chat", async (req, res) => {
   }
 });
 
-// Hilfsfunktion: Ticket-Updates senden (wie gehabt)
+// Hilfsfunktion: Ticket-Updates senden
 async function sendTicketUpdates() {
   try {
     const tickets = await db.collection("tickets").find({}).toArray();
@@ -177,11 +328,11 @@ async function sendTicketUpdates() {
       title: ticket.category ? `${ticket.category} Ticket` : "Ticket",
       date: ticket.closedAt || new Date().toISOString(),
       threadID: ticket.threadID,
-      creator: ticket.creator, // NEU: Creator
-      category: ticket.category, // NEU: Kategorie
-      status: ticket.status ? "Geschlossen" : "Offen", // NEU: Status (als Text)
-      closedBy: ticket.closedBy || "-", // NEU: Geschlossen von (oder '-')
-      closedAt: ticket.closedAt || "-", // NEU: Geschlossen am (oder '-')
+      creator: ticket.creator,
+      category: ticket.category,
+      status: ticket.status ? "Geschlossen" : "Offen",
+      closedBy: ticket.closedBy || "-",
+      closedAt: ticket.closedAt || "-",
     }));
     io.emit("ticketsUpdated", formattedTickets); // Update an alle Clients
   } catch (error) {
@@ -189,41 +340,39 @@ async function sendTicketUpdates() {
   }
 }
 
-// --- WebSocket-Verbindung (für Ticket-Updates *und* neue Nachrichten) ---
-const ticketViewers = {}; //Keep track of viewers
-const userAvatars = {};
+// --- WebSocket-Verbindung (für Ticket-Updates *und* Viewer-Anzeige) ---
+const ticketViewers = {}; // Verfolge, wer welches Ticket ansieht
+const userAvatars = {}; // Speichere Avatar-Hashes
+
 io.on("connection", (socket) => {
   console.log("Client verbunden");
 
   socket.on("ticketOpened", (ticketId, userId, avatarHash) => {
-    //JOIN ROOM
-    socket.join(ticketId);
+    socket.join(ticketId); // Dem Raum für dieses Ticket beitreten
     if (!ticketViewers[ticketId]) {
-      ticketViewers[ticketId] = []; // Corrected line
+      ticketViewers[ticketId] = [];
     }
     if (!ticketViewers[ticketId].includes(userId)) {
       ticketViewers[ticketId].push(userId);
       userAvatars[userId] = avatarHash; // Avatar-Hash speichern
     }
     io.to(ticketId).emit(
-      //BEVOR:  io.emit
       "updateTicketViewers",
       ticketId,
       ticketViewers[ticketId],
       userAvatars
-    ); // userAvatars senden
+    );
   });
 
   socket.on("ticketClosed", (ticketId, userId) => {
-    socket.leave(ticketId); //LEAVE ROOM
+    socket.leave(ticketId); // Den Raum für dieses Ticket verlassen
 
     if (ticketViewers[ticketId]) {
       ticketViewers[ticketId] = ticketViewers[ticketId].filter(
         (id) => id !== userId
       );
-      delete userAvatars[userId]; // Remove avatar when user leaves
+      delete userAvatars[userId]; // Avatar entfernen
       io.to(ticketId).emit(
-        //BEVOR:  io.emit
         "updateTicketViewers",
         ticketId,
         ticketViewers[ticketId],
@@ -234,7 +383,7 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     console.log("Client getrennt");
-    // Clean up user from all tickets they might be viewing on disconnect
+    // Aufräumen: Benutzer aus allen Tickets entfernen, die er ansieht
     for (const ticketId in ticketViewers) {
       if (ticketViewers[ticketId].includes(socket.id)) {
         ticketViewers[ticketId] = ticketViewers[ticketId].filter(
@@ -245,12 +394,13 @@ io.on("connection", (socket) => {
           ticketId,
           ticketViewers[ticketId],
           userAvatars
-        ); // corrected
+        );
       }
     }
-    delete userAvatars[socket.id]; // Clean up avatar
+    delete userAvatars[socket.id]; // Avatar entfernen
   });
-  // Send initial ticket list.
+
+  // Sende die initiale Ticketliste beim Verbinden
   sendTicketUpdates();
 });
 
