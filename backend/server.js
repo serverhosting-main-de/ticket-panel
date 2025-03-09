@@ -95,8 +95,8 @@ app.get("/login", (req, res) => {
   const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${
     process.env.DISCORD_CLIENT_ID
   }&redirect_uri=${encodeURIComponent(
-    process.env.DISCORD_REDIRECT_URI
-  )}&response_type=code&scope=identify%20guilds`;
+    "https://backendtickets.wonder-craft.de/callback"
+  )}&response_type=code&scope=identify+guilds`;
   res.redirect(discordAuthUrl);
 });
 
@@ -116,7 +116,7 @@ app.get("/callback", async (req, res) => {
         client_secret: process.env.DISCORD_CLIENT_SECRET,
         code,
         grant_type: "authorization_code",
-        redirect_uri: process.env.DISCORD_REDIRECT_URI,
+        redirect_uri: "https://backendtickets.wonder-craft.de/callback",
         scope: "identify guilds",
       }).toString(),
       {
