@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import styled from "styled-components";
 import io from "socket.io-client";
 
-// Styled Components (für das Styling - bleiben gleich)
+// Styled Components (für das Styling - bleiben gleich, mit Anpassungen für die Tabelle)
 const DashboardContainer = styled.div`
   padding: 30px;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
@@ -32,23 +32,12 @@ const StatusIndicator = styled.div`
   width: 15px;
   height: 15px;
   border-radius: 50%;
+  background-color: ${({ status }) =>
+    status === "online" ? "#2ecc71" : "#e74c3c"};
   margin-left: auto;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  background-color: ${({ status }) => {
-    switch (status) {
-      case "online":
-        return "#2ecc71"; // Grün
-      case "idle":
-        return "#f1c40f"; // Gelb/Orange
-      case "dnd":
-        return "#e74c3c"; // Rot
-      case "offline":
-      default:
-        return "#747f8d"; // Grau (oder eine andere Farbe für Offline/Unsichtbar)
-    }
-  }};
 `;
-
+//Anpassungen für die Tabelle
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
@@ -63,6 +52,12 @@ const Table = styled.table`
 const TableHeader = styled.thead`
   background-color: rgba(52, 73, 94, 0.5);
   text-align: left;
+  th {
+    // Style für table header cells
+    padding: 15px 20px;
+    border-bottom: 1px solid rgba(236, 240, 241, 0.1);
+    font-weight: bold; // Fettgedruckte Überschriften
+  }
 `;
 
 const TableRow = styled.tr`
@@ -78,6 +73,7 @@ const TableCell = styled.td`
   padding: 15px 20px;
   border-bottom: 1px solid rgba(236, 240, 241, 0.1);
 `;
+//------------------------------------
 
 const ActionButton = styled.button`
   padding: 10px 20px;
@@ -228,6 +224,7 @@ function Dashboard() {
             );
           }
         } else {
+          //Wenn /api/auth/status nicht isLoggedIn, dann trotzdem localstorage checken
           if (!handleLocalStorage()) return; //Wenn handleLocalStorage false, dann return.
         }
       } catch (error) {
@@ -240,11 +237,7 @@ function Dashboard() {
       }
     };
 
-    if (!handleLocalStorage()) {
-      checkAuthStatus();
-    } else {
-      setLoading(false); // Ladezustand beenden, da Daten aus LocalStorage
-    }
+    checkAuthStatus();
 
     const newSocket = io("https://backendtickets.wonder-craft.de");
     setSocket(newSocket);
@@ -376,13 +369,16 @@ function Dashboard() {
               <TableHeader>
                 <TableRow>
                   <TableCell>
-                    <strong>Titel</strong>
-                  </TableCell>
-                  <TableCell>
                     <strong>Ersteller</strong>
                   </TableCell>
                   <TableCell>
                     <strong>Kategorie</strong>
+                  </TableCell>
+                  <TableCell>
+                    <strong>Thread ID</strong>
+                  </TableCell>
+                  <TableCell>
+                    <strong>Erstellt</strong>
                   </TableCell>
                   <TableCell>
                     <strong>Status</strong>
@@ -404,9 +400,10 @@ function Dashboard() {
               <tbody>
                 {tickets.map((ticket) => (
                   <TableRow key={ticket.fileName}>
-                    <TableCell>{ticket.title}</TableCell>
                     <TableCell>{ticket.creator}</TableCell>
                     <TableCell>{ticket.category}</TableCell>
+                    <TableCell>{ticket.threadID}</TableCell>
+                    <TableCell>{ticket.date}</TableCell>
                     <TableCell>{ticket.status}</TableCell>
                     <TableCell>{ticket.closedBy}</TableCell>
                     <TableCell>{ticket.closedAt}</TableCell>
