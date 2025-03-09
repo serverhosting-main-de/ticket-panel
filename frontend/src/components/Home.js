@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 
@@ -8,19 +8,15 @@ const HomeContainer = styled.div`
   justify-content: center;
   align-items: center;
   height: 100vh;
-  background: linear-gradient(
-    135deg,
-    #1a2a6c,
-    #2b324c
-  ); /* Dunklerer Farbverlauf */
+  background: linear-gradient(135deg, #1a2a6c, #2b324c);
   color: #e0e0e0;
 `;
 
 const WelcomeBox = styled.div`
-  background-color: rgba(0, 0, 0, 0.5); /* Dunkler, transparenter Hintergrund */
+  background-color: rgba(0, 0, 0, 0.5);
   padding: 60px;
   border-radius: 12px;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3); /* Stärkere Schatten für mehr Tiefe */
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
   text-align: center;
   max-width: 600px;
 `;
@@ -35,50 +31,29 @@ const Title = styled.h1`
 
 const Description = styled.p`
   font-size: 20px;
-  color: #bdbdbd; /* Etwas helleres Grau für Lesbarkeit */
+  color: #bdbdbd;
   line-height: 1.7;
   margin-bottom: 40px;
 `;
 
 const CallToAction = styled.p`
   font-size: 18px;
-  color: #90a4ae; /* Ein dezenter Blauton für den Akzent */
+  color: #90a4ae;
   font-style: italic;
   margin-bottom: 30px;
-`;
-
-const ActionButton = styled.button`
-  padding: 18px 40px;
-  font-size: 20px;
-  background: linear-gradient(
-    135deg,
-    #1a2a6c,
-    #2b324c
-  ); /* Dunklerer Button-Farbverlauf */
-  color: white;
-  border: 1px solid #37474f; /* Rand für bessere Definition */
-  border-radius: 8px;
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-
-  &:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
-  }
 `;
 
 function Home() {
   const navigate = useNavigate();
   const isLoggedIn = localStorage.getItem("loggedIn") === "true";
 
-  const redirectToDashboard = () => {
-    navigate("/dashboard");
-  };
-
-  const redirectToLogin = () => {
-    navigate("/login");
-  };
+  useEffect(() => {
+    if (isLoggedIn) {
+      navigate("/dashboard");
+    } else {
+      navigate("/login");
+    }
+  }, [isLoggedIn, navigate]);
 
   return (
     <HomeContainer>
@@ -89,11 +64,6 @@ function Home() {
           Überblick über Ihre Ticket-Historie.
         </Description>
         <CallToAction>Einblick in Ihre vergangenen Anliegen.</CallToAction>
-        <ActionButton
-          onClick={isLoggedIn ? redirectToDashboard : redirectToLogin}
-        >
-          {isLoggedIn ? "Zum Dashboard" : "Zum Login"}
-        </ActionButton>
       </WelcomeBox>
     </HomeContainer>
   );
