@@ -329,11 +329,11 @@ async function sendTicketUpdates() {
     const formattedTickets = tickets.map((ticket) => ({
       fileName: ticket._id.toString(),
       title: ticket.category ? `${ticket.category} Ticket` : "Ticket",
-      date: ticket.closedAt || new Date().toISOString(),
+      date: ticket.createdAt,
       threadID: ticket.threadID,
       creator: ticket.creator,
       category: ticket.category,
-      status: ticket.closedBy != null ? "Offen" : "Geschlossen",
+      status: ticket.status ? "Offen" : "Geschlossen",
       closedBy: ticket.closedBy || "-",
       closedAt: ticket.closedAt || "-",
     }));
