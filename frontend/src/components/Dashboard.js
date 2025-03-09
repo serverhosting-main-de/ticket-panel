@@ -49,22 +49,23 @@ const Modal = styled.div`
 
   /* Globale CSS-Regeln für den inneren HTML-Inhalt des Modals */
   & * {
-    color: #d4d4d4; /* Helle Textfarbe für alle Elemente im Modal */
+    color: #d4d4d4 !important; /* Helle Textfarbe für alle Elemente im Modal */
   }
 
   & body {
-    background-color: #282828; /* Dunklere Hintergrundfarbe für das Modal */
+    background-color: #282828 !important; /* Dunklere Hintergrundfarbe für das Modal */
   }
 `;
 
 const ModalContent = styled.div`
-  background-color: white;
+  background-color: #282828 !important; /* Dunklere Hintergrundfarbe für das Modal */
   padding: 20px;
   border-radius: 8px;
   width: 80%;
   max-height: 80%;
   overflow-y: auto;
   position: relative;
+  color: #d4d4d4 !important; /* Helle Textfarbe für das Modal */
 `;
 
 const CloseButton = styled.button`
