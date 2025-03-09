@@ -4,77 +4,83 @@ import axios from "axios";
 import styled from "styled-components";
 
 const DashboardContainer = styled.div`
-  padding: 20px;
-  font-family: Arial, sans-serif;
+  padding: 20px !important;
+  font-family: Arial, sans-serif !important;
+  background-color: #121212 !important;
+  color: #ffffff !important;
 `;
 
 const UserInfo = styled.div`
-  display: flex;
-  align-items: center;
-  margin-bottom: 20px;
+  display: flex !important;
+  align-items: center !important;
+  margin-bottom: 20px !important;
 `;
 
 const Avatar = styled.img`
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  margin-right: 10px;
+  width: 50px !important;
+  height: 50px !important;
+  border-radius: 50% !important;
+  margin-right: 10px !important;
 `;
 
 const Table = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
+  width: 100% !important;
+  border-collapse: collapse !important;
+  margin-top: 20px !important;
+  background-color: #1e1e1e !important;
+  color: #ffffff !important;
 `;
 
 const TableHeader = styled.thead`
-  background-color: #f4f4f4;
+  background-color: #333333 !important;
 `;
 
 const TableRow = styled.tr`
   &:nth-child(even) {
-    background-color: #f9f9f9;
+    background-color: #2a2a2a !important;
   }
   &:hover {
-    background-color: #ececec;
+    background-color: #3a3a3a !important;
   }
 `;
 
 const TableCell = styled.td`
-  padding: 10px;
-  border: 1px solid #ddd;
+  padding: 10px !important;
+  border: 1px solid #444444 !important;
 `;
 
 const Modal = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  background-color: rgba(0, 0, 0, 0.7) !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
 `;
 
 const ModalContent = styled.div`
-  background-color: white;
-  padding: 20px;
-  border-radius: 8px;
-  width: 80%;
-  max-height: 80%;
-  overflow-y: auto;
-  position: relative;
+  background-color: #1e1e1e !important;
+  padding: 20px !important;
+  border-radius: 8px !important;
+  width: 80% !important;
+  max-height: 80% !important;
+  overflow-y: auto !important;
+  position: relative !important;
+  color: #ffffff !important;
 `;
 
 const CloseButton = styled.button`
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: none;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
+  position: absolute !important;
+  top: 10px !important;
+  right: 10px !important;
+  background: none !important;
+  border: none !important;
+  font-size: 20px !important;
+  cursor: pointer !important;
+  color: #ffffff !important;
 `;
 
 function Dashboard() {
