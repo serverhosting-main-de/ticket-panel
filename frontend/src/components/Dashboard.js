@@ -408,10 +408,9 @@ function Dashboard() {
               <Avatar
                 src={userData?.avatar || localStorage.getItem("avatar")}
                 alt="Avatar"
-              >
-                <StatusIndicator status={status} />
-              </Avatar>
+              />
             )}
+            <StatusIndicator status={status} />
             <h1>
               Willkommen,{" "}
               {userData
