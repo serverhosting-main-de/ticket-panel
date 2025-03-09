@@ -7,7 +7,6 @@ const { Client, GatewayIntentBits, Partials } = require("discord.js");
 const http = require("http");
 const { Server } = require("socket.io");
 const { MongoClient, ObjectId } = require("mongodb");
-const { stdout } = require("process");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -309,7 +308,7 @@ app.get("/api/tickets/:ticketId/chat", async (req, res) => {
       }));
 
     res.json(formattedMessages);
-    stdout.write("Chatverlauf gesendet\n | " + formattedMessages);
+    console.log("Chatverlauf gesendet\n | " + formattedMessages);
   } catch (error) {
     console.error("Fehler beim Abrufen des Chatverlaufs:", error);
     res.status(500).json({ error: "Interner Serverfehler." });
