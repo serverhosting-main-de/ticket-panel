@@ -46,6 +46,15 @@ const Modal = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
+
+  /* Globale CSS-Regeln für den inneren HTML-Inhalt des Modals */
+  & * {
+    color: #d4d4d4; /* Helle Textfarbe für alle Elemente im Modal */
+  }
+
+  & body {
+    background-color: #282828; /* Dunklere Hintergrundfarbe für das Modal */
+  }
 `;
 
 const ModalContent = styled.div`
