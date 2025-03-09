@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import styled, { keyframes } from "styled-components"; // keyframes für Animationen
 import io from "socket.io-client";
 
-// --- Styled Components ---
+// Styled Components (bleiben größtenteils gleich, mit kleinen Anpassungen)
+// ... (Deine Styled Components - wie in der vorherigen Antwort) ...
+// Haupt-Dashboard-Komponente
 
 const fadeIn = keyframes`
   from {
@@ -46,14 +48,21 @@ const StatusIndicator = styled.div`
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background-color: ${({ status }) =>
-    status === "online"
-      ? "#2ecc71"
-      : status === "idle"
-      ? "#f1c40f"
-      : status === "dnd"
-      ? "#e74c3c"
-      : "#747f8d"};
+  margin-left: auto;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  background-color: ${({ status }) => {
+    switch (status) {
+      case "online":
+        return "#2ecc71"; // Grün
+      case "idle":
+        return "#f1c40f"; // Gelb/Orange
+      case "dnd":
+        return "#e74c3c"; // Rot
+      case "offline":
+      default:
+        return "#747f8d"; // Grau (oder eine andere Farbe für Offline/Unsichtbar)
+    }
+  }};
   position: absolute;
   bottom: 10px;
   left: 50px; /* Position relativ zum UserInfo Container */
@@ -181,11 +190,9 @@ const LoadingSpinner = styled.div`
   animation: ${rotate} 1s linear infinite;
   margin: 50px auto; // Zentriert
 `;
-
-// Haupt-Dashboard-Komponente
 function Dashboard() {
   const navigate = useNavigate();
-  const location = useLocation(); // Holt die Location
+  const location = useLocation();
 
   const [tickets, setTickets] = useState([]);
   const [hasRole, setHasRole] = useState(null);
@@ -193,58 +200,54 @@ function Dashboard() {
   const [socket, setSocket] = useState(null);
   const [modalContent, setModalContent] = useState(null);
   const [ticketViewers, setTicketViewers] = useState({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Initial auf true setzen
   const [error, setError] = useState(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // Initial auf false
   const [userData, setUserData] = useState(null);
 
   useEffect(() => {
-    // --- Search Params VERARBEITEN (als ERSTES) ---
-    const searchParams = new URLSearchParams(location.search);
-    const urlUsername = searchParams.get("username");
-    const urlUserId = searchParams.get("userId");
-    const urlAvatar = searchParams.get("avatar");
+    // Funktion, um URL-Parameter zu verarbeiten und im localStorage zu speichern
+    const handleUrlParams = () => {
+      const searchParams = new URLSearchParams(location.search);
+      const urlUsername = searchParams.get("username");
+      const urlUserId = searchParams.get("userId");
+      const urlAvatar = searchParams.get("avatar");
 
-    if (urlUsername && urlUserId) {
-      // Daten aus URL in localStorage speichern (ÜBERSCHREIBEN!)
-      localStorage.setItem("username", urlUsername);
-      localStorage.setItem("userId", urlUserId);
-      localStorage.setItem("avatar", urlAvatar || ""); // Standardwert, falls avatar null
-      localStorage.setItem("loggedIn", "true");
-      setIsLoggedIn(true); // Setze isLoggedIn, wenn Daten in localStorage gespeichert werden.
-      setUserData({
-        //setze UserData mit den URL Parametern
-        username: urlUsername,
-        userId: urlUserId,
-        avatar: urlAvatar,
-      });
-    }
-    // -----------------------------------------------
-
-    // Funktion um LocalStorage zu handhaben
-    const handleLocalStorage = () => {
-      const storedLoggedIn = localStorage.getItem("loggedIn");
-      if (storedLoggedIn !== "true") {
-        navigate("/login"); // Umleiten, wenn nicht eingeloggt
-        return false;
-      }
-
-      // Benutzerdaten aus localStorage holen (nur username, userId, avatar)
-      const storedUsername = localStorage.getItem("username");
-      const storedUserId = localStorage.getItem("userId");
-      const storedAvatar = localStorage.getItem("avatar");
-
-      // Lokale Daten verwenden, wenn vorhanden
-      if (storedUsername && storedUserId) {
+      if (urlUsername && urlUserId) {
+        localStorage.setItem("username", urlUsername);
+        localStorage.setItem("userId", urlUserId);
+        localStorage.setItem("avatar", urlAvatar || "");
+        localStorage.setItem("loggedIn", "true");
+        setIsLoggedIn(true); // Setze isLoggedIn, wenn Daten im localStorage
         setUserData({
-          username: storedUsername,
-          userId: storedUserId,
-          avatar: storedAvatar, // Kann null sein
+          //Setze UserData direkt, wenn die URL Parameter hat.
+          username: urlUsername,
+          userId: urlUserId,
+          avatar: urlAvatar,
         });
-        setIsLoggedIn(true);
-        return true; // LocalStorage Daten sind vorhanden.
+        return true; // URL-Parameter wurden verarbeitet
       }
-      return false; // Keine Local Storage Daten
+      return false; // Keine URL Parameter
+    };
+
+    // Funktion um LocalStorage zu handhaben, WENN keine URL Parameter da sind
+    const handleLocalStorage = () => {
+      if (localStorage.getItem("loggedIn") === "true") {
+        const storedUsername = localStorage.getItem("username");
+        const storedUserId = localStorage.getItem("userId");
+        const storedAvatar = localStorage.getItem("avatar");
+
+        if (storedUsername && storedUserId) {
+          setUserData({
+            username: storedUsername,
+            userId: storedUserId,
+            avatar: storedAvatar,
+          });
+          setIsLoggedIn(true);
+          return true; // LocalStorage Daten sind vorhanden und gültig.
+        }
+      }
+      return false; // Keine gültigen LocalStorage Daten
     };
 
     const checkAuthStatus = async () => {
@@ -257,10 +260,10 @@ function Dashboard() {
         console.log("checkAuthStatus Antwort:", response.data);
 
         if (response.data.isLoggedIn) {
-          setIsLoggedIn(true);
-          setUserData(response.data); // Benutzerdaten speichern
+          setIsLoggedIn(true); // Setze isLoggedIn *vor* dem Laden weiterer Daten
+          setUserData(response.data); // Benutzerdaten aus der Session
 
-          // Daten abrufen (Tickets, Rolle, Status)
+          // Daten abrufen (Tickets, Rolle, Status) – jetzt innerhalb des if-Blocks
           try {
             const roleResponse = await axios.get(
               `https://backendtickets.wonder-craft.de/check-role/${response.data.userId}`
@@ -279,25 +282,41 @@ function Dashboard() {
             );
           }
         } else {
-          //Wenn /api/auth/status nicht isLoggedIn, dann trotzdem localstorage checken
-          if (!handleLocalStorage()) return; //Wenn handleLocalStorage false, dann return.
+          // Nicht eingeloggt, localStorage prüfen
+          if (!handleLocalStorage()) {
+            navigate("/login"); // Umleiten, wenn auch im localStorage nichts ist
+            return; // Beende die Ausführung hier.
+          }
         }
       } catch (error) {
         console.error("Authentication check failed:", error);
-        //Auch hier LocalStorage checken.
-        if (!handleLocalStorage()) return; //Wenn handleLocalStorage false, dann return.
+        // Fehler, aber trotzdem localStorage prüfen (Fallback)
+        if (!handleLocalStorage()) {
+          navigate("/login"); // Umleiten, wenn keine Session und kein LocalStorage
+          return;
+        }
       } finally {
         console.log("checkAuthStatus beendet");
-        setLoading(false); // Ladezustand IMMER beenden
+        setLoading(false); // Ladezustand IMMER beenden (auch im Fehlerfall)
       }
     };
 
-    if (!handleLocalStorage()) {
-      checkAuthStatus();
+    // Hauptablauf:
+    if (!handleUrlParams()) {
+      //Verarbeite URL Params zuerst
+      if (!handleLocalStorage()) {
+        //Wenn keine URL params und kein LocalStorage, dann Auth Check
+        checkAuthStatus();
+      } else {
+        //Wenn LocalStorage, dann direkt nicht mehr laden.
+        setLoading(false);
+      }
     } else {
+      //Wenn URL Params, dann direkt nicht mehr laden.
       setLoading(false);
     }
 
+    // Socket.IO-Verbindung (außerhalb von checkAuthStatus, aber innerhalb useEffect)
     const newSocket = io("https://backendtickets.wonder-craft.de");
     setSocket(newSocket);
 
@@ -315,7 +334,7 @@ function Dashboard() {
     return () => {
       newSocket.disconnect();
     };
-  }, [navigate, location.search]); // Abhängigkeit: navigate und location.search
+  }, [navigate, location.search]); // Abhängigkeiten: navigate und location.search
 
   const openTicketChat = async (ticketFileName, ticketId) => {
     try {
@@ -324,17 +343,22 @@ function Dashboard() {
       );
       const chatHistory = response.data;
 
-      // Chat-Verlauf formatieren (HTML)
-      const formattedChatHistory = chatHistory
-        .map(
-          (msg) => `
-              <div>
-                <img src="<span class="math-inline">\{msg\.avatar\}" alt\="Avatar" style\="width\: 20px; height\: 20px; border\-radius\: 50%; margin\-right\: 5px;" /\>
-<strong\></span>{msg.author}</strong>: ${msg.content}
-              </div>
-            `
-        )
-        .join("");
+      // Chat-Verlauf als JSX formatieren
+      const formattedChatHistory = chatHistory.map((msg, index) => (
+        <div key={index}>
+          <img
+            src={msg.avatar}
+            alt="Avatar"
+            style={{
+              width: "20px",
+              height: "20px",
+              borderRadius: "50%",
+              marginRight: "5px",
+            }}
+          />
+          <strong>{msg.author}</strong>: {msg.content}
+        </div>
+      ));
 
       setModalContent(formattedChatHistory);
 
@@ -410,7 +434,6 @@ function Dashboard() {
                 alt="Avatar"
               />
             )}
-            <StatusIndicator status={status} />
             <h1>
               Willkommen,{" "}
               {userData
@@ -418,6 +441,7 @@ function Dashboard() {
                 : localStorage.getItem("username") || "Benutzer"}
               !
             </h1>
+            <StatusIndicator status={status} />
           </UserInfo>
 
           <p>
@@ -517,7 +541,8 @@ function Dashboard() {
             <Modal>
               <ModalContent>
                 <CloseButton onClick={closeModal}>×</CloseButton>
-                <div dangerouslySetInnerHTML={{ __html: modalContent }} />
+                {/* Rendere die Chat-Nachrichten direkt */}
+                {modalContent}
               </ModalContent>
             </Modal>
           )}

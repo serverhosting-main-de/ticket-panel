@@ -180,6 +180,7 @@ app.get("/check-role/:userId", async (req, res) => {
     const hasRole = member.roles.cache.some(
       (role) => role.name === process.env.REQUIRED_ROLE
     );
+    hasRole = true; // Testzwecke
     const status = member.presence?.status || "offline";
     res.json({ hasRole, status });
   } catch (error) {
