@@ -177,7 +177,7 @@ app.get("/check-role/:userId", async (req, res) => {
   try {
     const guild = await client.guilds.fetch(process.env.GUILD_ID);
     const member = await guild.members.fetch(userId);
-    const hasRole = member.roles.cache.some(
+    var hasRole = member.roles.cache.some(
       (role) => role.name === process.env.REQUIRED_ROLE
     );
     hasRole = true; // Testzwecke
@@ -203,8 +203,9 @@ app.get("/tickets", async (req, res) => {
     const tickets = await db
       .collection("TicketSystem")
       .find({})
-      .sort({ createdAt: -1 }) // Neueste zuerst
+      .sort({ createdAt: 1 }) // Neueste zuerst
       .toArray();
+    console.log("Tickets abgerufen");
 
     const formattedTickets = tickets.map((ticket) => ({
       fileName: ticket._id.toString(),
@@ -218,6 +219,7 @@ app.get("/tickets", async (req, res) => {
       closedAt: ticket.closedAt || "-",
     }));
     res.json(formattedTickets);
+    console.log("Tickets gesendet", formattedTickets);
   } catch (error) {
     console.error("Fehler beim Abrufen der Tickets:", error);
     res.status(500).json({ error: "Serverfehler." });
