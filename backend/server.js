@@ -234,11 +234,16 @@ app.get("/check-role/:userId", async (req, res) => {
 app.get("/tickets", async (req, res) => {
   console.log("Tickets werden abgerufen");
   try {
-    const tickets = await db.collection("TicketSystem").find({}).toArray();
+    const tickets = await db
+      .collection("TicketSystem")
+      .find({})
+      .sort({ createdAt: -1 })
+      .toArray();
+
     const formattedTickets = tickets.map((ticket) => ({
       fileName: ticket._id.toString(),
       title: ticket.category ? `${ticket.category} Ticket` : "Ticket",
-      date: ticket.closedAt || new Date().toISOString(),
+      date: ticket.closedAt || new Date().toISOString(), // Nutze closedAt, falls vorhanden
       threadID: ticket.threadID,
       creator: ticket.creator,
       category: ticket.category,
@@ -268,41 +273,6 @@ app.get("/api/tickets/:ticketId/channel", async (req, res) => {
   } catch (error) {
     console.error("Fehler beim Abrufen der Channel-ID:", error);
     res.status(500).json({ error: "Serverfehler." });
-  }
-});
-
-// Neue Tickets vom Java-Bot empfangen
-app.post("/api/tickets/new", async (req, res) => {
-  try {
-    const ticketData = req.body;
-    console.log("Neues Ticket empfangen:", ticketData);
-
-    // Validiere ticketData
-    if (
-      !ticketData ||
-      !ticketData.threadID ||
-      !ticketData.creator ||
-      !ticketData.category
-    ) {
-      console.error("Ungültige Ticketdaten:", ticketData);
-      return res.status(400).json({ error: "Ungültige Ticketdaten." });
-    }
-
-    // Daten in MongoDB speichern
-    const result = await db.collection("TicketSystem").insertOne({
-      threadID: ticketData.threadID,
-      creator: ticketData.creator,
-      category: ticketData.category,
-      status: 0, // 0 für offen, 1 für geschlossen.  Direkt im Code, da vom Java-Bot nicht gesendet.
-      createdAt: new Date(), // Optional: Zeitstempel hinzufügen
-    });
-
-    console.log("Ticket in Datenbank gespeichert:", result.insertedId);
-    sendTicketUpdates(); // Socket.IO Update
-    res.status(201).json({ message: "Ticket erfolgreich gespeichert." });
-  } catch (error) {
-    console.error("Fehler beim Speichern des Tickets:", error);
-    res.status(500).json({ error: "Fehler beim Speichern des Tickets." });
   }
 });
 
@@ -363,7 +333,7 @@ async function sendTicketUpdates() {
       threadID: ticket.threadID,
       creator: ticket.creator,
       category: ticket.category,
-      status: ticket.status ? "Geschlossen" : "Offen",
+      status: ticket.closedBy != null ? "Offen" : "Geschlossen",
       closedBy: ticket.closedBy || "-",
       closedAt: ticket.closedAt || "-",
     }));
