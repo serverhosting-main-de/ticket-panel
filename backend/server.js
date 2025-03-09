@@ -23,7 +23,7 @@ const io = new Server(server, {
 
 // --- MongoDB-Verbindung ---
 const mongoUrl = process.env.MONGO_URL;
-const dbName = "levelsystem"; // Deine Datenbank
+const dbName = "Serverhosting"; // Deine Datenbank
 let db;
 
 async function connectToMongo() {
@@ -234,7 +234,7 @@ app.get("/check-role/:userId", async (req, res) => {
 app.get("/tickets", async (req, res) => {
   console.log("Tickets werden abgerufen");
   try {
-    const tickets = await db.collection("tickets").find({}).toArray();
+    const tickets = await db.collection("TicketSystem").find({}).toArray();
     const formattedTickets = tickets.map((ticket) => ({
       fileName: ticket._id.toString(),
       title: ticket.category ? `${ticket.category} Ticket` : "Ticket",
@@ -258,7 +258,9 @@ app.get("/api/tickets/:ticketId/channel", async (req, res) => {
   const { ticketId } = req.params;
   try {
     const objectId = new ObjectId(ticketId);
-    const ticket = await db.collection("tickets").findOne({ _id: objectId });
+    const ticket = await db
+      .collection("TicketSystem")
+      .findOne({ _id: objectId });
     if (!ticket) {
       return res.status(404).json({ error: "Ticket nicht gefunden." });
     }
@@ -287,7 +289,7 @@ app.post("/api/tickets/new", async (req, res) => {
     }
 
     // Daten in MongoDB speichern
-    const result = await db.collection("tickets").insertOne({
+    const result = await db.collection("TicketSystem").insertOne({
       threadID: ticketData.threadID,
       creator: ticketData.creator,
       category: ticketData.category,
@@ -311,7 +313,9 @@ app.get("/api/tickets/:ticketId/chat", async (req, res) => {
   try {
     // 1. Ticket und Channel-ID aus MongoDB holen
     const objectId = new ObjectId(ticketId);
-    const ticket = await db.collection("tickets").findOne({ _id: objectId });
+    const ticket = await db
+      .collection("TicketSystem")
+      .findOne({ _id: objectId });
 
     if (!ticket || !ticket.threadID) {
       return res.status(404).json({ error: "Ticket or Channel ID not found" });
@@ -351,7 +355,7 @@ app.get("/api/tickets/:ticketId/chat", async (req, res) => {
 // Hilfsfunktion: Ticket-Updates senden
 async function sendTicketUpdates() {
   try {
-    const tickets = await db.collection("tickets").find({}).toArray();
+    const tickets = await db.collection("TicketSystem").find({}).toArray();
     const formattedTickets = tickets.map((ticket) => ({
       fileName: ticket._id.toString(),
       title: ticket.category ? `${ticket.category} Ticket` : "Ticket",
