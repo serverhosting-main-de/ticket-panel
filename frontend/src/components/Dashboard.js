@@ -4,83 +4,100 @@ import axios from "axios";
 import styled from "styled-components";
 
 const DashboardContainer = styled.div`
-  padding: 20px !important;
-  font-family: Arial, sans-serif !important;
-  background-color: #121212 !important;
-  color: #ffffff !important;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+  background-color: #121212;
+  color: #ffffff;
 `;
 
 const UserInfo = styled.div`
-  display: flex !important;
-  align-items: center !important;
-  margin-bottom: 20px !important;
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
 `;
 
 const Avatar = styled.img`
-  width: 50px !important;
-  height: 50px !important;
-  border-radius: 50% !important;
-  margin-right: 10px !important;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  margin-right: 10px;
 `;
 
 const Table = styled.table`
-  width: 100% !important;
-  border-collapse: collapse !important;
-  margin-top: 20px !important;
-  background-color: #1e1e1e !important;
-  color: #ffffff !important;
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  background-color: #1e1e1e;
+  color: #ffffff;
+  border-radius: 8px;
+  overflow: hidden;
 `;
 
 const TableHeader = styled.thead`
-  background-color: #333333 !important;
+  background-color: #333333;
+  text-align: left;
 `;
 
 const TableRow = styled.tr`
   &:nth-child(even) {
-    background-color: #2a2a2a !important;
+    background-color: #2a2a2a;
   }
   &:hover {
-    background-color: #3a3a3a !important;
+    background-color: #3a3a3a;
   }
 `;
 
 const TableCell = styled.td`
-  padding: 10px !important;
-  border: 1px solid #444444 !important;
+  padding: 12px 15px;
+  border-bottom: 1px solid #444444;
+`;
+
+const ActionButton = styled.button`
+  padding: 8px 15px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+
+  &:hover {
+    background-color: #0056b3;
+  }
 `;
 
 const Modal = styled.div`
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  background-color: rgba(0, 0, 0, 0.7) !important;
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
 `;
 
 const ModalContent = styled.div`
-  background-color: #1e1e1e !important;
-  padding: 20px !important;
-  border-radius: 8px !important;
-  width: 80% !important;
-  max-height: 80% !important;
-  overflow-y: auto !important;
-  position: relative !important;
-  color: #ffffff !important;
+  background-color: #1e1e1e;
+  padding: 20px;
+  border-radius: 8px;
+  width: 80%;
+  max-height: 80%;
+  overflow-y: auto;
+  position: relative;
+  color: #ffffff;
 `;
 
 const CloseButton = styled.button`
-  position: absolute !important;
-  top: 10px !important;
-  right: 10px !important;
-  background: none !important;
-  border: none !important;
-  font-size: 20px !important;
-  cursor: pointer !important;
-  color: #ffffff !important;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #ffffff;
 `;
 
 function Dashboard() {
@@ -189,9 +206,9 @@ function Dashboard() {
                 <TableCell>{ticket.title}</TableCell>
                 <TableCell>{ticket.date}</TableCell>
                 <TableCell>
-                  <button onClick={() => openTicketChat(ticket.fileName)}>
+                  <ActionButton onClick={() => openTicketChat(ticket.fileName)}>
                     Anzeigen
-                  </button>
+                  </ActionButton>
                 </TableCell>
               </TableRow>
             ))}

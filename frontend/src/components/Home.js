@@ -22,21 +22,21 @@ const WelcomeBox = styled.div`
 const Title = styled.h1`
   font-size: 36px;
   margin-bottom: 20px;
-  color: #333;
+  color: #fff; // Geändert zu weiß, da der Hintergrund der WelcomeBox dunkel ist
   font-weight: 600;
   line-height: 1.2;
 `;
 
 const Description = styled.p`
   font-size: 20px;
-  color: #555;
+  color: #ddd; // Geändert zu einem helleren Grau, da der Hintergrund der WelcomeBox dunkel ist
   line-height: 1.6;
   margin-bottom: 30px;
 `;
 
 const CallToAction = styled.p`
   font-size: 18px;
-  color: #777;
+  color: #aaa; // Geändert zu einem helleren Grau, da der Hintergrund der WelcomeBox dunkel ist
   font-style: italic;
   margin-bottom: 20px;
 `;
@@ -60,8 +60,12 @@ function Home() {
   const navigate = useNavigate();
   const isLoggedIn = localStorage.getItem("loggedIn") === "true";
 
-  const handleButtonClick = () => {
-    navigate(isLoggedIn ? "/dashboard" : "/login");
+  const redirectToDashboard = () => {
+    navigate("/dashboard");
+  };
+
+  const redirectToLogin = () => {
+    navigate("/login"); // Oder "/discord-login", wenn du einen separaten Discord-Login-Pfad hast
   };
 
   return (
@@ -74,7 +78,9 @@ function Home() {
         </Description>
         <CallToAction>Einblick in Ihre vergangenen Anliegen.</CallToAction>
 
-        <ActionButton onClick={handleButtonClick}>
+        <ActionButton
+          onClick={isLoggedIn ? redirectToDashboard : redirectToLogin}
+        >
           {isLoggedIn ? "Zum Dashboard" : "Zum Login"}
         </ActionButton>
       </WelcomeBox>
