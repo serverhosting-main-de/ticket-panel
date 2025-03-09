@@ -1,16 +1,27 @@
 import React, { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components"; // keyframes für Animationen
 import io from "socket.io-client";
 
-// Styled Components (für das Styling - bleiben gleich, mit Anpassungen für die Tabelle)
+// --- Styled Components ---
+
+const fadeIn = keyframes`
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+`;
+
 const DashboardContainer = styled.div`
   padding: 30px;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   background: linear-gradient(135deg, #2c3e50, #34495e);
   color: #ecf0f1;
   min-height: 100vh;
+  animation: ${fadeIn} 0.5s ease; /* Fade-in Animation */
 `;
 
 const UserInfo = styled.div`
@@ -18,76 +29,95 @@ const UserInfo = styled.div`
   align-items: center;
   margin-bottom: 30px;
   position: relative;
+  border-bottom: 2px solid rgba(236, 240, 241, 0.2);
+  padding-bottom: 20px;
 `;
 
 const Avatar = styled.img`
-  width: 60px;
-  height: 60px;
+  width: 70px;
+  height: 70px;
   border-radius: 50%;
-  margin-right: 15px;
-  border: 2px solid #3498db;
+  margin-right: 20px;
+  border: 3px solid #3498db;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
 `;
 
 const StatusIndicator = styled.div`
-  width: 15px;
-  height: 15px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background-color: ${({ status }) =>
-    status === "online" ? "#2ecc71" : "#e74c3c"};
-  margin-left: auto;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    status === "online"
+      ? "#2ecc71"
+      : status === "idle"
+      ? "#f1c40f"
+      : status === "dnd"
+      ? "#e74c3c"
+      : "#747f8d"};
+  position: absolute;
+  bottom: 10px;
+  left: 50px; /* Position relativ zum UserInfo Container */
+  border: 2px solid #34495e;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
 `;
-//Anpassungen für die Tabelle
+
+// Verbesserte Tabelle
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
-  margin-top: 30px;
-  background-color: rgba(0, 0, 0, 0.3);
-  color: #ecf0f1;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  margin-top: 20px;
+  background-color: rgba(255, 255, 255, 0.1); // Leicht transparentes Weiß
+  border-radius: 10px;
+  overflow: hidden; // Für abgerundete Ecken
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 `;
 
 const TableHeader = styled.thead`
-  background-color: rgba(52, 73, 94, 0.5);
-  text-align: left;
+  background-color: rgba(0, 0, 0, 0.2); // Etwas dunklerer Header
   th {
-    // Style für table header cells
     padding: 15px 20px;
-    border-bottom: 1px solid rgba(236, 240, 241, 0.1);
-    font-weight: bold; // Fettgedruckte Überschriften
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid rgba(236, 240, 241, 0.3);
+    &:first-child {
+      border-radius: 10px 0 0 0; // Abgerundete Ecken für die erste Zelle
+    }
+    &:last-child {
+      border-radius: 0 10px 0 0; // Abgerundete Ecken für die letzte Zelle
+    }
   }
 `;
 
 const TableRow = styled.tr`
   &:nth-child(even) {
-    background-color: rgba(0, 0, 0, 0.2);
+    background-color: rgba(0, 0, 0, 0.1); // Leicht abgedunkelte Zeilen
   }
   &:hover {
-    background-color: rgba(0, 0, 0, 0.4);
+    background-color: rgba(52, 152, 219, 0.2); /* Hover-Farbe */
   }
 `;
 
 const TableCell = styled.td`
-  padding: 15px 20px;
+  padding: 12px 20px;
   border-bottom: 1px solid rgba(236, 240, 241, 0.1);
 `;
-//------------------------------------
-
 const ActionButton = styled.button`
-  padding: 10px 20px;
+  padding: 8px 16px;
   background-color: #3498db;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.3s ease, transform 0.1s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 
   &:hover {
     background-color: #2980b9;
-    transform: translateY(-2px);
+    transform: scale(1.05); /* Leichter Zoom-Effekt */
+  }
+  &:active {
+    transform: scale(0.95);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   }
 `;
 
@@ -97,7 +127,7 @@ const Modal = styled.div`
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: rgba(0, 0, 0, 0.7); // Stärkerer Hintergrund
   display: flex;
   justify-content: center;
   align-items: center;
@@ -105,26 +135,51 @@ const Modal = styled.div`
 `;
 
 const ModalContent = styled.div`
-  background-color: #34495e;
-  padding: 30px;
-  border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-  max-width: 80%;
-  max-height: 80%;
+  background-color: #2c3e50; // Dunklerer Hintergrund
+  padding: 40px;
+  border-radius: 15px; // Stärker abgerundete Ecken
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5); // Stärkerer Schatten
+  max-width: 90%; // Etwas schmaler
+  max-height: 90%; // Etwas weniger hoch
   overflow-y: auto;
   position: relative;
-  color: white;
+  color: #ecf0f1; // Hellere Schriftfarbe
 `;
 
 const CloseButton = styled.button`
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 15px;
+  right: 15px;
   background: none;
   border: none;
-  font-size: 24px;
+  font-size: 30px; // Größer
   color: #ecf0f1;
   cursor: pointer;
+  transition: transform 0.3s ease; // Sanfter Übergang
+
+  &:hover {
+    transform: scale(1.2); // Vergrößern beim Hover
+  }
+`;
+
+// Ladeanimation (Spinner)
+const rotate = keyframes`
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+`;
+
+const LoadingSpinner = styled.div`
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: ${rotate} 1s linear infinite;
+  margin: 50px auto; // Zentriert
 `;
 
 // Haupt-Dashboard-Komponente
@@ -237,7 +292,11 @@ function Dashboard() {
       }
     };
 
-    checkAuthStatus();
+    if (!handleLocalStorage()) {
+      checkAuthStatus();
+    } else {
+      setLoading(false);
+    }
 
     const newSocket = io("https://backendtickets.wonder-craft.de");
     setSocket(newSocket);
@@ -256,7 +315,7 @@ function Dashboard() {
     return () => {
       newSocket.disconnect();
     };
-  }, [navigate, location.search]); // Abhängigkeit: navigate
+  }, [navigate, location.search]); // Abhängigkeit: navigate und location.search
 
   const openTicketChat = async (ticketFileName, ticketId) => {
     try {
@@ -270,8 +329,8 @@ function Dashboard() {
         .map(
           (msg) => `
               <div>
-                <img src="${msg.avatar}" alt="Avatar" style="width: 20px; height: 20px; border-radius: 50%; margin-right: 5px;" />
-                <strong>${msg.author}</strong>: ${msg.content}
+                <img src="<span class="math-inline">\{msg\.avatar\}" alt\="Avatar" style\="width\: 20px; height\: 20px; border\-radius\: 50%; margin\-right\: 5px;" /\>
+<strong\></span>{msg.author}</strong>: ${msg.content}
               </div>
             `
         )
@@ -327,7 +386,11 @@ function Dashboard() {
   };
 
   if (loading) {
-    return <DashboardContainer>Lade Daten...</DashboardContainer>;
+    return (
+      <DashboardContainer>
+        <LoadingSpinner />
+      </DashboardContainer>
+    );
   }
 
   if (error) {
@@ -345,7 +408,9 @@ function Dashboard() {
               <Avatar
                 src={userData?.avatar || localStorage.getItem("avatar")}
                 alt="Avatar"
-              />
+              >
+                <StatusIndicator status={status} />
+              </Avatar>
             )}
             <h1>
               Willkommen,{" "}
@@ -354,7 +419,6 @@ function Dashboard() {
                 : localStorage.getItem("username") || "Benutzer"}
               !
             </h1>
-            <StatusIndicator status={status} />
           </UserInfo>
 
           <p>
@@ -403,10 +467,18 @@ function Dashboard() {
                     <TableCell>{ticket.creator}</TableCell>
                     <TableCell>{ticket.category}</TableCell>
                     <TableCell>{ticket.threadID}</TableCell>
-                    <TableCell>{ticket.date}</TableCell>
+                    <TableCell>
+                      {ticket.date
+                        ? new Date(ticket.date).toLocaleString()
+                        : "-"}
+                    </TableCell>
                     <TableCell>{ticket.status}</TableCell>
                     <TableCell>{ticket.closedBy}</TableCell>
-                    <TableCell>{ticket.closedAt}</TableCell>
+                    <TableCell>
+                      {ticket.closedAt
+                        ? new Date(ticket.closedAt).toLocaleString()
+                        : "-"}
+                    </TableCell>
                     <TableCell>
                       <ActionButton
                         onClick={() =>
