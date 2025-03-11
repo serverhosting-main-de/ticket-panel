@@ -11,17 +11,6 @@ const path = require("path");
 
 const app = express();
 const port = process.env.PORT || 3000;
-process.chdir("/app"); // Setze das Working Directory auf /app
-
-app.use("/tickets", express.static("tickets"));
-
-app.get("/tickets/:threadID", (req, res) => {
-  const { threadID } = req.params;
-  if (!threadID || !/^[a-f0-9]{24}$/.test(threadID)) {
-    return res.status(400).send("Ungültige Thread-ID.");
-  }
-  res.sendFile(path.join(__dirname, "tickets", threadID + ".html"));
-});
 
 // --- HTTP Server & Socket.IO ---
 const server = http.createServer(app);
@@ -121,6 +110,18 @@ app.use(
   })
 );
 app.use(express.json()); // JSON Body Parser
+
+process.chdir("/app"); // Setze das Working Directory auf /app
+
+app.use("/tickets", express.static("tickets"));
+
+app.get("/tickets/:threadID", (req, res) => {
+  const { threadID } = req.params;
+  if (!threadID || !/^[a-f0-9]{24}$/.test(threadID)) {
+    return res.status(400).send("Ungültige Thread-ID.");
+  }
+  res.sendFile(path.join(__dirname, "tickets", threadID + ".html"));
+});
 
 // --- Routen ---
 
