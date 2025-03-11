@@ -507,7 +507,8 @@ function Dashboard() {
                     <TableCell>{ticket.status}</TableCell>
                     <TableCell>{ticket.closedBy}</TableCell>
                     <TableCell>
-                      {ticket.closedAt != null
+                      {ticket.closedAt &&
+                      !isNaN(new Date(ticket.closedAt).getTime())
                         ? new Date(ticket.closedAt).toLocaleString()
                         : "-"}
                     </TableCell>
