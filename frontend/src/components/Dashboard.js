@@ -278,10 +278,22 @@ function Dashboard() {
                 authStatus.userId || userData.userId
               }`
             );
-            setHasRole(roleResponse.hasRole);
-            setStatus(roleResponse.status);
+            // Überprüfe, ob die Antwort einen Fehler enthält
+            if (roleResponse.error) {
+              setError(roleResponse.error); // Setze die Fehlermeldung
+              setHasRole(false); // Setze hasRole auf false
+              setStatus("offline"); // Setze den Status auf offline
+            } else {
+              // Wenn kein Fehler vorliegt, aktualisiere hasRole und status
+              setHasRole(roleResponse.hasRole);
+              setStatus(roleResponse.status);
+            }
           } catch (error) {
+            // Fehlerbehandlung für Netzwerkfehler oder andere Ausnahmen
+            console.error("Fehler beim Abrufen der Benutzerrolle:", error);
             setError("Fehler beim Laden von Benutzerdaten.");
+            setHasRole(false); // Setze hasRole auf false
+            setStatus("offline"); // Setze den Status auf offline
           }
         }
       } catch (error) {

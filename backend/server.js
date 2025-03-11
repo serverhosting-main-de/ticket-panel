@@ -163,32 +163,52 @@ app.get("/api/auth/status", (req, res) => {
       avatar: req.session.avatar,
     });
   } else {
-    res.status(401).json({ isLoggedIn: true });
+    res.status(200).json({ isLoggedIn: true });
   }
 });
 
-// Rolle prüfen (Discord-Bot)
 app.get("/check-role/:userId", async (req, res) => {
   const { userId } = req.params;
+  // Validate userId
+  if (!userId || !/^\d+$/.test(userId)) {
+    return res.status(400).json({ error: "Ungültige Benutzer-ID." });
+  }
   console.log(`Check-role aufgerufen für userID: ${userId}`);
   try {
+    // Fetch the guild
     const guild = await client.guilds.fetch(process.env.GUILD_ID);
+    if (!guild) {
+      return res.status(404).json({ error: "Server (Guild) nicht gefunden." });
+    }
+    // Fetch the member
     const member = await guild.members.fetch(userId);
+    if (!member) {
+      return res
+        .status(404)
+        .json({ error: "Benutzer nicht auf dem Server gefunden." });
+    }
+    // Check if the user has the required role
     const hasRole = member.roles.cache.some(
       (role) => role.name === process.env.REQUIRED_ROLE
     );
+    // Get the user's status
     const status = member.presence?.status || "offline";
+    // Return the response
     res.json({ hasRole, status });
   } catch (error) {
     console.error("Fehler beim Überprüfen der Rolle:", error);
-    const statusCode = error.code === 10013 || error.code === 10004 ? 404 : 500;
-    const errorMessage =
-      error.code === 10013
-        ? "Benutzer nicht auf dem Server gefunden."
-        : error.code === 10004
-        ? "Server (Guild) nicht gefunden."
-        : "Fehler beim Abrufen der Benutzerinformationen.";
-    res.status(statusCode).json({ error: errorMessage });
+    // Handle specific Discord API errors
+    if (error.code === 10013) {
+      return res
+        .status(404)
+        .json({ error: "Benutzer nicht auf dem Server gefunden." });
+    } else if (error.code === 10004) {
+      return res.status(404).json({ error: "Server (Guild) nicht gefunden." });
+    } else {
+      return res
+        .status(500)
+        .json({ error: "Fehler beim Abrufen der Benutzerinformationen." });
+    }
   }
 });
 
@@ -231,12 +251,12 @@ app.get("/api/tickets/:ticketId/channel", async (req, res) => {
       .collection("TicketSystem")
       .findOne({ _id: objectId });
     if (!ticket) {
-      return res.status(404).json({ error: "Ticket nicht gefunden." });
+      return res.status(200).json({ error: "Ticket nicht gefunden." });
     }
     res.json({ channelId: ticket.threadID });
   } catch (error) {
     console.error("Fehler beim Abrufen der Channel-ID:", error);
-    res.status(500).json({ error: "Serverfehler." });
+    res.status(200).json({ error: "Serverfehler." });
   }
 });
 
@@ -264,7 +284,7 @@ app.post("/api/tickets/new", async (req, res) => {
     res.status(201).json({ message: "Ticket erfolgreich gespeichert." });
   } catch (error) {
     console.error("Fehler beim Speichern des Tickets:", error);
-    res.status(500).json({ error: "Fehler beim Speichern des Tickets." });
+    res.status(200).json({ error: "Fehler beim Speichern des Tickets." });
   }
 });
 app.get("/api/tickets/:ticketId/chat", async (req, res) => {
