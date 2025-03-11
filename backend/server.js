@@ -7,9 +7,12 @@ const { Client, GatewayIntentBits, Partials } = require("discord.js");
 const http = require("http");
 const { Server } = require("socket.io");
 const { MongoClient, ObjectId } = require("mongodb");
+const path = require("path");
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+app.use(express.static(path.join(__dirname, "app", "tickets")));
 
 // --- HTTP Server & Socket.IO ---
 const server = http.createServer(app);
@@ -242,11 +245,12 @@ app.get("/api/tickets", async (req, res) => {
       .toArray();
 
     const formattedTickets = tickets.map((ticket) => ({
-      fileName: ticket._id.toString(),
+      id: ticket._id.toString(),
       title: ticket.category ? `${ticket.category} Ticket` : "Ticket",
       date: ticket.createdAt,
       threadID: ticket.threadID,
       creator: ticket.creator,
+      creatorID: ticket.creatorID,
       category: ticket.category,
       status: ticket.status ? "Offen" : "Geschlossen",
       closedBy: ticket.closedBy != null ? ticket.closedBy : "-",

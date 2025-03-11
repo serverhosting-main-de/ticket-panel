@@ -382,43 +382,74 @@ function Dashboard() {
 
   // Chatverlauf öffnen
   const openTicketChat = useCallback(
-    async (ticketFileName, ticketId) => {
-      try {
-        const chatHistory = await fetchData(
-          `https://backendtickets.wonder-craft.de/api/tickets/${ticketId}/chat`
-        );
+    async (ticketId) => {
+      const ticketById = tickets.find((t) => t.id === ticketId);
+      if (!ticketById) {
+        setModalContent("Ticket nicht gefunden.");
+        return;
+      }
 
-        const formattedChatHistory = chatHistory.map((msg, index) => (
-          <div key={index}>
-            <img
-              src={msg.avatar}
-              alt="Avatar"
-              style={{
-                width: "20px",
-                height: "20px",
-                borderRadius: "50%",
-                marginRight: "5px",
-              }}
-            />
-            <strong>{msg.author}</strong>: {msg.content}
-          </div>
-        ));
-
-        setModalContent(formattedChatHistory);
-
-        if (socket && userData) {
-          socket.emit(
-            "ticketOpened",
-            ticketId,
-            userData.userId,
-            userData.avatar?.split("/").pop().split(".")[0]
+      if (ticketById.status === true) {
+        // Ticket ist offen: Lade den Chatverlauf
+        try {
+          const chatHistory = await fetchData(
+            `https://backendtickets.wonder-craft.de/api/tickets/${ticketId}/chat`
           );
+
+          const formattedChatHistory = chatHistory.map((msg, index) => (
+            <div key={index}>
+              <img
+                src={msg.avatar}
+                alt="Avatar"
+                style={{
+                  width: "20px",
+                  height: "20px",
+                  borderRadius: "50%",
+                  marginRight: "5px",
+                }}
+              />
+              <strong>{msg.author}</strong>: {msg.content}
+            </div>
+          ));
+
+          setModalContent(formattedChatHistory);
+
+          if (socket && userData) {
+            socket.emit(
+              "ticketOpened",
+              ticketId,
+              userData.userId,
+              userData.avatar?.split("/").pop().split(".")[0]
+            );
+          }
+        } catch (error) {
+          setModalContent("Fehler beim Laden des Chatverlaufs.");
         }
-      } catch (error) {
-        setModalContent("Fehler beim Laden.");
+      } else {
+        // Ticket ist geschlossen: Lade die HTML-Datei
+        try {
+          const response = await fetch(
+            `https://backendtickets.wonder-craft.de/tickets/${ticketById.threadID}.html`
+          );
+
+          if (!response.ok) {
+            throw new Error("HTML-Datei nicht gefunden.");
+          }
+
+          const htmlContent = await response.text();
+          setModalContent(
+            <div
+              dangerouslySetInnerHTML={{ __html: htmlContent }}
+              style={{ whiteSpace: "pre-wrap" }}
+            />
+          );
+        } catch (error) {
+          console.error("Fehler beim Laden der HTML-Datei:", error);
+          setModalContent("Fehler beim Laden der HTML-Datei.");
+        }
       }
     },
-    [socket, userData]
+    [socket, userData, tickets]
   );
 
   // Modal schließen
@@ -505,13 +536,9 @@ function Dashboard() {
             <tbody>
               {tickets.length > 0 ? (
                 tickets.map((ticket) => (
-                  <TableRow key={ticket.fileName}>
+                  <TableRow key={ticket.id}>
                     <TableCell>
-                      <ActionButton
-                        onClick={() =>
-                          openTicketChat(ticket.fileName, ticket.fileName)
-                        }
-                      >
+                      <ActionButton onClick={() => openTicketChat(ticket.id)}>
                         Anzeigen
                       </ActionButton>
                     </TableCell>
