@@ -291,11 +291,12 @@ io.on("connection", (socket) => {
         userId
       ] = `https://cdn.discordapp.com/avatars/${userId}/${avatarHash}.png`;
     }
-    io.to(threadID).emit("updateTicketViewers", {
+    io.to(threadID).emit(
+      "updateTicketViewers",
       threadID,
-      viewers: ticketViewers[threadID],
-      avatars: userAvatars,
-    });
+      ticketViewers[threadID],
+      userAvatars
+    );
   });
 
   socket.on("ticketClosed", (threadID, userId) => {
@@ -305,11 +306,12 @@ io.on("connection", (socket) => {
         (id) => id !== userId
       );
       delete userAvatars[userId];
-      io.to(threadID).emit("updateTicketViewers", {
+      io.to(threadID).emit(
+        "updateTicketViewers",
         threadID,
-        viewers: ticketViewers[threadID],
-        avatars: userAvatars,
-      });
+        ticketViewers[threadID],
+        userAvatars
+      );
     }
   });
 
@@ -321,11 +323,12 @@ io.on("connection", (socket) => {
           (id) => id !== socket.id
         );
         delete userAvatars[socket.id];
-        io.to(threadID).emit("updateTicketViewers", {
+        io.to(threadID).emit(
+          "updateTicketViewers",
           threadID,
-          viewers: ticketViewers[threadID],
-          avatars: userAvatars,
-        });
+          ticketViewers[threadID],
+          userAvatars
+        );
       }
     }
   });

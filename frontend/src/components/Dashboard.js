@@ -130,25 +130,59 @@ const Modal = styled.div`
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.8);
+  width: 100% !important;
+  height: 100% !important;
+  background-color: rgba(0, 0, 0, 0.8) !important;
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 1000 !important;
 `;
 
 const ModalContent = styled.div`
-  background-color: #2c3e50;
-  padding: 30px;
-  border-radius: 15px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
-  max-width: 90%;
-  max-height: 90%;
-  overflow-y: auto;
-  position: relative;
-  color: #ecf0f1;
+  background-color: #2c3e50 !important;
+  padding: 20px !important;
+  border-radius: 15px !important;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5) !important;
+  width: 90% !important;
+  max-width: 1200px !important;
+  height: 90% !important;
+  max-height: 800px !important;
+  overflow-y: auto !important;
+  position: relative !important;
+  color: #ecf0f1 !important;
+`;
+
+const ChatContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px !important;
+  width: 100% !important;
+  height: 100% !important;
+  padding: 10px !important;
+`;
+
+const ChatMessage = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px !important;
+  padding: 10px !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-radius: 10px !important;
+`;
+
+const ChatAvatar = styled.img`
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50% !important;
+`;
+
+const ChatAuthor = styled.strong`
+  color: #3498db !important;
+`;
+
+const ChatContent = styled.span`
+  color: #ecf0f1 !important;
 `;
 
 const CloseButton = styled.button`
@@ -368,10 +402,10 @@ function Dashboard() {
       setTickets(updatedTickets);
     });
 
-    newSocket.on("updateTicketViewers", (ticketId, viewers, avatars) => {
+    newSocket.on("updateTicketViewers", (threadID, viewers, avatars) => {
       setTicketViewers((prevViewers) => ({
         ...prevViewers,
-        [ticketId]: { viewers, avatars },
+        [threadID]: { viewers, avatars }, // Verwenden Sie threadID statt ticketId
       }));
     });
 
@@ -382,9 +416,8 @@ function Dashboard() {
 
   // Chatverlauf öffnen
   const openTicketChat = useCallback(
-    async (threadID) => {
-      // eslint-disable-next-line eqeqeq
-      const ticketById = tickets.find((t) => t.threadID == threadID);
+    async (threadId) => {
+      const ticketById = tickets.find((t) => t.threadID === threadId);
       if (!ticketById) {
         setModalContent("Ticket nicht gefunden.");
         return;
@@ -394,31 +427,27 @@ function Dashboard() {
         // Ticket ist offen: Lade den Chatverlauf
         try {
           const chatHistory = await fetchData(
-            `https://backendtickets.wonder-craft.de/api/tickets/${threadID}/chat`
+            `https://backendtickets.wonder-craft.de/api/tickets/${threadId}/chat`
           );
 
-          const formattedChatHistory = chatHistory.map((msg, index) => (
-            <div key={index}>
-              <img
-                src={msg.avatar}
-                alt="Avatar"
-                style={{
-                  width: "20px",
-                  height: "20px",
-                  borderRadius: "50%",
-                  marginRight: "5px",
-                }}
-              />
-              <strong>{msg.author}</strong>: {msg.content}
-            </div>
-          ));
+          const formattedChatHistory = (
+            <ChatContainer>
+              {chatHistory.map((msg, index) => (
+                <ChatMessage key={index}>
+                  <ChatAvatar src={msg.avatar} alt="Avatar" />
+                  <ChatAuthor>{msg.author}</ChatAuthor>
+                  <ChatContent>{msg.content}</ChatContent>
+                </ChatMessage>
+              ))}
+            </ChatContainer>
+          );
 
           setModalContent(formattedChatHistory);
 
           if (socket && userData) {
             socket.emit(
               "ticketOpened",
-              threadID,
+              threadId,
               userData.userId,
               userData.avatar?.split("/").pop().split(".")[0]
             );
@@ -430,8 +459,7 @@ function Dashboard() {
         // Ticket ist geschlossen: Lade die HTML-Datei
         try {
           const response = await fetch(
-            `https://backendtickets.wonder-craft.de/tickets/${threadID}.html`,
-            { withCredentials: true }
+            `https://backendtickets.wonder-craft.de/tickets/${threadId}.html`
           );
 
           if (!response.ok) {
@@ -563,12 +591,12 @@ function Dashboard() {
                         : "-"}
                     </TableCell>
                     <TableCell>
-                      {ticketViewers[ticket.fileName]?.viewers?.map(
+                      {ticketViewers[ticket.threadID]?.viewers?.map(
                         (viewerId) => (
                           <Avatar
                             key={viewerId}
                             src={`https://cdn.discordapp.com/avatars/${viewerId}/${
-                              ticketViewers[ticket.fileName]?.avatars[viewerId]
+                              ticketViewers[ticket.threadID]?.avatars[viewerId]
                             }.png`}
                             alt="Avatar"
                             style={{
