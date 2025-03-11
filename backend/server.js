@@ -276,58 +276,96 @@ app.get("/api/tickets", async (req, res) => {
 // --- WebSocket-Verbindung ---
 const ticketViewers = {}; // Verfolge, wer welches Ticket ansieht
 const userAvatars = {}; // Speichere Avatar-URLs
-
 io.on("connection", (socket) => {
   console.log("Client verbunden");
 
+  // Event: Ein Benutzer öffnet ein Ticket
   socket.on("ticketOpened", (threadID, userId, avatarHash) => {
     socket.join(threadID);
+
+    // Initialisiere ticketViewers für diesen threadID, falls noch nicht geschehen
     if (!ticketViewers[threadID]) {
       ticketViewers[threadID] = [];
     }
+
+    // Füge den Benutzer hinzu, wenn er noch nicht in der Liste ist
     if (!ticketViewers[threadID].includes(userId)) {
       ticketViewers[threadID].push(userId);
+
+      // Speichere den Avatar des Benutzers
       userAvatars[
         userId
       ] = `https://cdn.discordapp.com/avatars/${userId}/${avatarHash}.png`;
     }
+
+    // Erstelle ein Objekt mit den Avataren der aktuellen Ticket-Viewer
+    const viewerAvatars = {};
+    for (const viewerId of ticketViewers[threadID]) {
+      viewerAvatars[viewerId] = userAvatars[viewerId];
+    }
+
+    // Sende die aktualisierten Viewer und ihre Avatare an alle Clients im Raum
     io.to(threadID).emit(
       "updateTicketViewers",
       threadID,
       ticketViewers[threadID],
-      userAvatars
+      viewerAvatars
     );
   });
 
+  // Event: Ein Benutzer schließt ein Ticket
   socket.on("ticketClosed", (threadID, userId) => {
-    socket.leave(threadID);
+    socket.leave(threadID); // Verlasse den Raum
+
     if (ticketViewers[threadID]) {
+      // Entferne den Benutzer aus der Liste der Betrachter
       ticketViewers[threadID] = ticketViewers[threadID].filter(
         (id) => id !== userId
       );
+
+      // Lösche den Avatar des Benutzers
       delete userAvatars[userId];
+
+      // Erstelle ein Objekt mit den Avataren der aktuellen Ticket-Viewer
+      const viewerAvatars = {};
+      for (const viewerId of ticketViewers[threadID]) {
+        viewerAvatars[viewerId] = userAvatars[viewerId];
+      }
+
+      // Sende die aktualisierten Viewer und ihre Avatare an alle Clients im Raum
       io.to(threadID).emit(
         "updateTicketViewers",
         threadID,
         ticketViewers[threadID],
-        userAvatars
+        viewerAvatars
       );
     }
   });
 
+  // Event: Ein Client trennt die Verbindung
   socket.on("disconnect", () => {
     console.log("Client getrennt");
+
+    // Durchlaufe alle Tickets und entferne den Benutzer aus den Betrachter-Listen
     for (const threadID in ticketViewers) {
       if (ticketViewers[threadID].includes(socket.id)) {
         ticketViewers[threadID] = ticketViewers[threadID].filter(
           (id) => id !== socket.id
         );
         delete userAvatars[socket.id];
+
+        // Erstelle ein Objekt mit den Avataren der aktuellen Ticket-Viewer
+        const viewerAvatars = {};
+        for (const viewerId of ticketViewers[threadID]) {
+          viewerAvatars[viewerId] = userAvatars[viewerId];
+        }
+
+        // Sende die aktualisierten Viewer und ihre Avatare an alle Clients im Raum
         io.to(threadID).emit(
           "updateTicketViewers",
           threadID,
           ticketViewers[threadID],
-          userAvatars
+          viewerAvatars
         );
       }
     }

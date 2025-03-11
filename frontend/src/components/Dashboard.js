@@ -405,7 +405,7 @@ function Dashboard() {
     newSocket.on("updateTicketViewers", (threadID, viewers, avatars) => {
       setTicketViewers((prevViewers) => ({
         ...prevViewers,
-        [threadID]: { viewers, avatars }, // Verwenden Sie threadID statt ticketId
+        [threadID]: { viewers, avatars },
       }));
     });
 
@@ -441,9 +441,15 @@ function Dashboard() {
             </ChatContainer>
           );
 
-          setModalContent(formattedChatHistory);
+          setModalContent({
+            content: formattedChatHistory,
+            threadID: threadId, // Speichere die threadID im modalContent
+          });
         } catch (error) {
-          setModalContent("Fehler beim Laden des Chatverlaufs.");
+          setModalContent({
+            content: "Fehler beim Laden des Chatverlaufs.",
+            threadID: threadId,
+          });
         }
       } else {
         // Ticket ist geschlossen: Lade die HTML-Datei
@@ -457,17 +463,24 @@ function Dashboard() {
           }
 
           const htmlContent = await response.text();
-          setModalContent(
-            <div
-              dangerouslySetInnerHTML={{ __html: htmlContent }}
-              style={{ whiteSpace: "pre-wrap" }}
-            />
-          );
+          setModalContent({
+            content: (
+              <div
+                dangerouslySetInnerHTML={{ __html: htmlContent }}
+                style={{ whiteSpace: "pre-wrap" }}
+              />
+            ),
+            threadID: threadId, // Speichere die threadID im modalContent
+          });
         } catch (error) {
           console.error("Fehler beim Laden der HTML-Datei:", error);
-          setModalContent("Fehler beim Laden der HTML-Datei.");
+          setModalContent({
+            content: "Fehler beim Laden der HTML-Datei.",
+            threadID: threadId,
+          });
         }
       }
+
       // Setze den aktuellen Benutzer als Betrachter des Tickets
       if (socket && userData) {
         socket.emit(
@@ -483,15 +496,17 @@ function Dashboard() {
 
   // Modal schließen
   const closeModal = useCallback(() => {
-    setModalContent(null);
-    if (socket && userData) {
+    if (socket && userData && modalContent) {
+      // Finde das aktuelle Ticket, das im Modal angezeigt wird
       const currentTicket = tickets.find(
-        (t) => t.threadID === modalContent?.threadID
+        (t) => t.threadID === modalContent.threadID
       );
       if (currentTicket) {
+        // Sende den ticketClosed-Event an den Server
         socket.emit("ticketClosed", currentTicket.threadID, userData.userId);
       }
     }
+    setModalContent(null);
   }, [socket, userData, tickets, modalContent]);
 
   // Logout
@@ -622,7 +637,7 @@ function Dashboard() {
             <Modal>
               <ModalContent>
                 <CloseButton onClick={closeModal}>×</CloseButton>
-                {modalContent}
+                {modalContent.content}
               </ModalContent>
             </Modal>
           )}
