@@ -248,9 +248,9 @@ app.get("/api/tickets", async (req, res) => {
       threadID: ticket.threadID,
       creator: ticket.creator,
       category: ticket.category,
-      status: ticket.status ? "Geschlossen" : "Offen",
-      closedBy: ticket.closedBy || "-",
-      closedAt: ticket.closedAt || "-",
+      status: ticket.status ? "Offen" : "Geschlossen",
+      closedBy: ticket.closedBy != null ? ticket.closedBy : "-",
+      closedAt: ticket.closedAt != null ? ticket.closedAt : "-",
     }));
 
     res.json(formattedTickets);
