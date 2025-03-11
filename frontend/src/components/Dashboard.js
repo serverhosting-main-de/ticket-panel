@@ -474,6 +474,9 @@ function Dashboard() {
             <TableHeader>
               <TableRow>
                 <TableCell>
+                  <strong>Aktion</strong>
+                </TableCell>
+                <TableCell>
                   <strong>Ersteller</strong>
                 </TableCell>
                 <TableCell>
@@ -493,9 +496,6 @@ function Dashboard() {
                 </TableCell>
                 <TableCell>
                   <strong>Geschlossen am</strong>
-                </TableCell>
-                <TableCell>
-                  <strong>Aktion</strong>
                 </TableCell>
                 <TableCell>
                   <strong>Aktuelle Bearbeiter</strong>
