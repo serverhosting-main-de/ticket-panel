@@ -322,8 +322,15 @@ function Dashboard() {
           "https://backendtickets.wonder-craft.de/api/tickets",
           { withCredentials: true }
         );
-        console.log("API-Antwort:", response.data); // Logge die Antwort
-        setTickets(response.data);
+        console.log("API-Antwort:", response.data);
+        const tickets = response.data;
+        tickets.forEach((ticket) => {
+          if (hasRole) return;
+          if (ticket.creator !== userData.username) {
+            tickets.removeItem(ticket);
+          }
+        });
+        setTickets(tickets);
       } catch (error) {
         console.error("Fehler beim Abrufen der Tickets:", error);
         if (error.response) {
@@ -347,7 +354,7 @@ function Dashboard() {
 
     // Rufe die Tickets beim Laden der Komponente ab
     fetchTickets();
-  }, []); // Leeres Array bedeutet, dass dieser Effekt nur einmal beim Mounten ausgeführt wird
+  }, [hasRole, userData.username]); // Leeres Array bedeutet, dass dieser Effekt nur einmal beim Mounten ausgeführt wird
 
   // Socket.IO-Verbindung herstellen
   useEffect(() => {
@@ -405,7 +412,7 @@ function Dashboard() {
           );
         }
       } catch (error) {
-        setModalContent("Fehler beim Laden des Chatverlaufs.");
+        setModalContent("Fehler beim Laden.");
       }
     },
     [socket, userData]
@@ -496,6 +503,15 @@ function Dashboard() {
               {tickets.length > 0 ? (
                 tickets.map((ticket) => (
                   <TableRow key={ticket.fileName}>
+                    <TableCell>
+                      <ActionButton
+                        onClick={() =>
+                          openTicketChat(ticket.fileName, ticket.fileName)
+                        }
+                      >
+                        Anzeigen
+                      </ActionButton>
+                    </TableCell>
                     <TableCell>{ticket.creator}</TableCell>
                     <TableCell>{ticket.category}</TableCell>
                     <TableCell>{ticket.threadID}</TableCell>
@@ -511,15 +527,6 @@ function Dashboard() {
                       !isNaN(new Date(ticket.closedAt).getTime())
                         ? new Date(ticket.closedAt).toLocaleString()
                         : "-"}
-                    </TableCell>
-                    <TableCell>
-                      <ActionButton
-                        onClick={() =>
-                          openTicketChat(ticket.fileName, ticket.fileName)
-                        }
-                      >
-                        Anzeigen
-                      </ActionButton>
                     </TableCell>
                     <TableCell>
                       {ticketViewers[ticket.fileName]?.viewers?.map(
