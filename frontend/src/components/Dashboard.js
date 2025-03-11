@@ -382,8 +382,9 @@ function Dashboard() {
 
   // Chatverlauf öffnen
   const openTicketChat = useCallback(
-    async (threadId) => {
-      const ticketById = tickets.find((t) => t.threadID === threadId);
+    async (threadID) => {
+      // eslint-disable-next-line eqeqeq
+      const ticketById = tickets.find((t) => t.threadID == threadID);
       if (!ticketById) {
         setModalContent("Ticket nicht gefunden.");
         return;
@@ -393,7 +394,7 @@ function Dashboard() {
         // Ticket ist offen: Lade den Chatverlauf
         try {
           const chatHistory = await fetchData(
-            `https://backendtickets.wonder-craft.de/api/tickets/${threadId}/chat`
+            `https://backendtickets.wonder-craft.de/api/tickets/${threadID}/chat`
           );
 
           const formattedChatHistory = chatHistory.map((msg, index) => (
@@ -417,7 +418,7 @@ function Dashboard() {
           if (socket && userData) {
             socket.emit(
               "ticketOpened",
-              threadId,
+              threadID,
               userData.userId,
               userData.avatar?.split("/").pop().split(".")[0]
             );
@@ -429,7 +430,7 @@ function Dashboard() {
         // Ticket ist geschlossen: Lade die HTML-Datei
         try {
           const response = await fetch(
-            `https://backendtickets.wonder-craft.de/tickets/${threadId}.html`
+            `https://backendtickets.wonder-craft.de/tickets/${threadID}.html`
           );
 
           if (!response.ok) {
@@ -536,10 +537,10 @@ function Dashboard() {
             <tbody>
               {tickets.length > 0 ? (
                 tickets.map((ticket) => (
-                  <TableRow key={ticket.id}>
+                  <TableRow key={ticket.threadID}>
                     <TableCell>
                       <ActionButton
-                        onClick={() => openTicketChat(ticket.threadId)}
+                        onClick={() => openTicketChat(ticket.threadID)}
                       >
                         Anzeigen
                       </ActionButton>

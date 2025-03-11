@@ -37,13 +37,12 @@ async function sendTicketUpdates() {
       .sort({ createdAt: -1 })
       .toArray();
     const formattedTickets = tickets.map((ticket) => ({
-      id: ticket._id,
       title: ticket.category ? `${ticket.category} Ticket` : "Ticket",
       date: ticket.createdAt,
       threadID: ticket.threadID,
       creator: ticket.creator,
       category: ticket.category,
-      status: ticket.status ? "Geschlossen" : "Offen",
+      status: ticket.status ? "Offen" : "Geschlossen",
       closedBy: ticket.closedBy || "-",
       closedAt: ticket.closedAt || "-",
     }));
@@ -241,21 +240,19 @@ app.get("/api/tickets", async (req, res) => {
     const tickets = await db
       .collection("TicketSystem")
       .find({})
-      .sort({ createdAt: -1 }) // Neueste zuerst
+      .sort({ createdAt: -1 })
       .toArray();
-
     const formattedTickets = tickets.map((ticket) => ({
-      id: ticket._id.toString(),
       title: ticket.category ? `${ticket.category} Ticket` : "Ticket",
       date: ticket.createdAt,
       threadID: ticket.threadID,
       creator: ticket.creator,
-      creatorID: ticket.creatorID,
       category: ticket.category,
       status: ticket.status ? "Offen" : "Geschlossen",
-      closedBy: ticket.closedBy != null ? ticket.closedBy : "-",
-      closedAt: ticket.closedAt != null ? ticket.closedAt : "-",
+      closedBy: ticket.closedBy || "-",
+      closedAt: ticket.closedAt || "-",
     }));
+    io.emit("ticketsUpdated", formattedTickets);
 
     res.json(formattedTickets);
   } catch (error) {
@@ -271,34 +268,34 @@ const userAvatars = {}; // Speichere Avatar-URLs
 io.on("connection", (socket) => {
   console.log("Client verbunden");
 
-  socket.on("ticketOpened", (ticketId, userId, avatarHash) => {
-    socket.join(ticketId);
-    if (!ticketViewers[ticketId]) {
-      ticketViewers[ticketId] = [];
+  socket.on("ticketOpened", (threadID, userId, avatarHash) => {
+    socket.join(threadID);
+    if (!ticketViewers[threadID]) {
+      ticketViewers[threadID] = [];
     }
-    if (!ticketViewers[ticketId].includes(userId)) {
-      ticketViewers[ticketId].push(userId);
+    if (!ticketViewers[threadID].includes(userId)) {
+      ticketViewers[threadID].push(userId);
       userAvatars[
         userId
       ] = `https://cdn.discordapp.com/avatars/${userId}/${avatarHash}.png`;
     }
-    io.to(ticketId).emit("updateTicketViewers", {
-      ticketId,
-      viewers: ticketViewers[ticketId],
+    io.to(threadID).emit("updateTicketViewers", {
+      threadID,
+      viewers: ticketViewers[threadID],
       avatars: userAvatars,
     });
   });
 
-  socket.on("ticketClosed", (ticketId, userId) => {
-    socket.leave(ticketId);
-    if (ticketViewers[ticketId]) {
-      ticketViewers[ticketId] = ticketViewers[ticketId].filter(
+  socket.on("ticketClosed", (threadID, userId) => {
+    socket.leave(threadID);
+    if (ticketViewers[threadID]) {
+      ticketViewers[threadID] = ticketViewers[threadID].filter(
         (id) => id !== userId
       );
       delete userAvatars[userId];
-      io.to(ticketId).emit("updateTicketViewers", {
-        ticketId,
-        viewers: ticketViewers[ticketId],
+      io.to(threadID).emit("updateTicketViewers", {
+        threadID,
+        viewers: ticketViewers[threadID],
         avatars: userAvatars,
       });
     }
@@ -306,15 +303,15 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     console.log("Client getrennt");
-    for (const ticketId in ticketViewers) {
-      if (ticketViewers[ticketId].includes(socket.id)) {
-        ticketViewers[ticketId] = ticketViewers[ticketId].filter(
+    for (const threadID in ticketViewers) {
+      if (ticketViewers[threadID].includes(socket.id)) {
+        ticketViewers[threadID] = ticketViewers[threadID].filter(
           (id) => id !== socket.id
         );
         delete userAvatars[socket.id];
-        io.to(ticketId).emit("updateTicketViewers", {
-          ticketId,
-          viewers: ticketViewers[ticketId],
+        io.to(threadID).emit("updateTicketViewers", {
+          threadID,
+          viewers: ticketViewers[threadID],
           avatars: userAvatars,
         });
       }
