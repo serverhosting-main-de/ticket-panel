@@ -425,41 +425,41 @@ function Dashboard() {
           </p>
 
           <h2>Deine Tickets</h2>
-          {tickets.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableCell>
-                    <strong>Ersteller</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Kategorie</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Thread ID</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Erstellt</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Status</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Geschlossen von</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Geschlossen am</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Aktion</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Aktuelle Bearbeiter</strong>
-                  </TableCell>
-                </TableRow>
-              </TableHeader>
-              <tbody>
-                {tickets.map((ticket) => (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableCell>
+                  <strong>Ersteller</strong>
+                </TableCell>
+                <TableCell>
+                  <strong>Kategorie</strong>
+                </TableCell>
+                <TableCell>
+                  <strong>Thread ID</strong>
+                </TableCell>
+                <TableCell>
+                  <strong>Erstellt</strong>
+                </TableCell>
+                <TableCell>
+                  <strong>Status</strong>
+                </TableCell>
+                <TableCell>
+                  <strong>Geschlossen von</strong>
+                </TableCell>
+                <TableCell>
+                  <strong>Geschlossen am</strong>
+                </TableCell>
+                <TableCell>
+                  <strong>Aktion</strong>
+                </TableCell>
+                <TableCell>
+                  <strong>Aktuelle Bearbeiter</strong>
+                </TableCell>
+              </TableRow>
+            </TableHeader>
+            <tbody>
+              {tickets.length > 0 ? (
+                tickets.map((ticket) => (
                   <TableRow key={ticket.fileName}>
                     <TableCell>{ticket.creator}</TableCell>
                     <TableCell>{ticket.category}</TableCell>
@@ -504,13 +504,16 @@ function Dashboard() {
                       )}
                     </TableCell>
                   </TableRow>
-                ))}
-              </tbody>
-            </Table>
-          ) : (
-            <p>Keine Tickets gefunden.</p>
-          )}
-
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan="9" style={{ textAlign: "center" }}>
+                    Keine Tickets gefunden.
+                  </TableCell>
+                </TableRow>
+              )}
+            </tbody>
+          </Table>
           {modalContent && (
             <Modal>
               <ModalContent>
