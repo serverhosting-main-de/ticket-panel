@@ -11,8 +11,17 @@ const path = require("path");
 
 const app = express();
 const port = process.env.PORT || 3000;
+process.chdir("/app"); // Setze das Working Directory auf /app
 
-app.use("/tickets", express.static(path.join(__dirname, "tickets")));
+app.use("/tickets", express.static("tickets"));
+
+app.get("/tickets/:threadID", (req, res) => {
+  const { threadID } = req.params;
+  if (!threadID || !/^[a-f0-9]{24}$/.test(threadID)) {
+    return res.status(400).send("Ungültige Thread-ID.");
+  }
+  res.sendFile(path.join(__dirname, "tickets", threadID + ".html"));
+});
 
 // --- HTTP Server & Socket.IO ---
 const server = http.createServer(app);
@@ -41,6 +50,7 @@ async function sendTicketUpdates() {
       date: ticket.createdAt,
       threadID: ticket.threadID,
       creator: ticket.creator,
+      creatorID: ticket.creatorID,
       category: ticket.category,
       status: ticket.status ? "Offen" : "Geschlossen",
       closedBy: ticket.closedBy || "-",
@@ -247,6 +257,7 @@ app.get("/api/tickets", async (req, res) => {
       date: ticket.createdAt,
       threadID: ticket.threadID,
       creator: ticket.creator,
+      creatorID: ticket.creatorID,
       category: ticket.category,
       status: ticket.status ? "Offen" : "Geschlossen",
       closedBy: ticket.closedBy || "-",

@@ -330,7 +330,7 @@ function Dashboard() {
         // Filtere die Tickets basierend auf der Rolle und dem Ersteller
         const filteredTickets = hasRole
           ? tickets // Wenn der Benutzer die Rolle hat, zeige alle Tickets an
-          : tickets.filter((ticket) => ticket.creator === userData.username); // Andernfalls zeige nur die eigenen Tickets an
+          : tickets.filter((ticket) => ticket.creatorID === userData.userId); // Andernfalls filtere die Tickets nach dem Ersteller
 
         // Setze die gefilterten Tickets im State
         setTickets(filteredTickets);
@@ -357,7 +357,7 @@ function Dashboard() {
 
     // Rufe die Tickets beim Laden der Komponente ab
     fetchTickets();
-  }, [hasRole, userData.username]); // Abhängigkeiten: hasRole und userData.username // Leeres Array bedeutet, dass dieser Effekt nur einmal beim Mounten ausgeführt wird
+  }, [hasRole, userData.userId]); // Abhängigkeiten: hasRole und userData.username // Leeres Array bedeutet, dass dieser Effekt nur einmal beim Mounten ausgeführt wird
 
   // Socket.IO-Verbindung herstellen
   useEffect(() => {
@@ -430,7 +430,8 @@ function Dashboard() {
         // Ticket ist geschlossen: Lade die HTML-Datei
         try {
           const response = await fetch(
-            `https://backendtickets.wonder-craft.de/tickets/${threadID}.html`
+            `https://backendtickets.wonder-craft.de/tickets/${threadID}.html`,
+            { withCredentials: true }
           );
 
           if (!response.ok) {
