@@ -424,7 +424,6 @@ function Dashboard() {
       }
 
       if (ticketById.status === true) {
-        // Ticket ist offen: Lade den Chatverlauf
         try {
           const chatHistory = await fetchData(
             `https://backendtickets.wonder-craft.de/api/tickets/${threadId}/chat`
@@ -443,15 +442,6 @@ function Dashboard() {
           );
 
           setModalContent(formattedChatHistory);
-
-          if (socket && userData) {
-            socket.emit(
-              "ticketOpened",
-              threadId,
-              userData.userId,
-              userData.avatar?.split("/").pop().split(".")[0]
-            );
-          }
         } catch (error) {
           setModalContent("Fehler beim Laden des Chatverlaufs.");
         }
@@ -477,6 +467,15 @@ function Dashboard() {
           console.error("Fehler beim Laden der HTML-Datei:", error);
           setModalContent("Fehler beim Laden der HTML-Datei.");
         }
+      }
+      // Setze den aktuellen Benutzer als Betrachter des Tickets
+      if (socket && userData) {
+        socket.emit(
+          "ticketOpened",
+          threadId,
+          userData.userId,
+          userData.avatar?.split("/").pop().split(".")[0]
+        );
       }
     },
     [socket, userData, tickets]
