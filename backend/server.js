@@ -26,6 +26,30 @@ const mongoUrl = process.env.MONGO_URL;
 const dbName = "Serverhosting"; // Deine Datenbank
 let db;
 
+async function sendTicketUpdates() {
+  try {
+    const tickets = await db
+      .collection("TicketSystem")
+      .find({})
+      .sort({ createdAt: -1 })
+      .toArray();
+    const formattedTickets = tickets.map((ticket) => ({
+      fileName: ticket._id.toString(),
+      title: ticket.category ? `${ticket.category} Ticket` : "Ticket",
+      date: ticket.createdAt,
+      threadID: ticket.threadID,
+      creator: ticket.creator,
+      category: ticket.category,
+      status: ticket.status ? "Geschlossen" : "Offen",
+      closedBy: ticket.closedBy || "-",
+      closedAt: ticket.closedAt || "-",
+    }));
+    io.emit("ticketsUpdated", formattedTickets); // Update an alle Clients
+  } catch (error) {
+    console.error("Error sending ticket updates:", error);
+  }
+}
+
 async function connectToMongo() {
   try {
     const client = await MongoClient.connect(mongoUrl);
