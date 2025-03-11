@@ -86,6 +86,8 @@ app.use(
 );
 app.use(express.json()); // JSON Body Parser
 
+// --- Routen ---
+
 // Login (Discord OAuth2)
 app.get("/login", (req, res) => {
   const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${
@@ -153,7 +155,7 @@ app.get("/callback", async (req, res) => {
   }
 });
 
-// --- Authentifizierungsstatus prüfen ---
+// Authentifizierungsstatus prüfen
 app.get("/api/auth/status", (req, res) => {
   if (req.session.userId) {
     res.json({
@@ -163,41 +165,35 @@ app.get("/api/auth/status", (req, res) => {
       avatar: req.session.avatar,
     });
   } else {
-    res.status(200).json({ isLoggedIn: true });
+    res.status(200).json({ isLoggedIn: false });
   }
 });
 
+// Rolle prüfen
 app.get("/check-role/:userId", async (req, res) => {
   const { userId } = req.params;
-  // Validate userId
   if (!userId || !/^\d+$/.test(userId)) {
     return res.status(400).json({ error: "Ungültige Benutzer-ID." });
   }
   console.log(`Check-role aufgerufen für userID: ${userId}`);
   try {
-    // Fetch the guild
     const guild = await client.guilds.fetch(process.env.GUILD_ID);
     if (!guild) {
       return res.status(404).json({ error: "Server (Guild) nicht gefunden." });
     }
-    // Fetch the member
     const member = await guild.members.fetch(userId);
     if (!member) {
       return res
         .status(404)
         .json({ error: "Benutzer nicht auf dem Server gefunden." });
     }
-    // Check if the user has the required role
     const hasRole = member.roles.cache.some(
       (role) => role.name === process.env.REQUIRED_ROLE
     );
-    // Get the user's status
     const status = member.presence?.status || "offline";
-    // Return the response
     res.json({ hasRole, status });
   } catch (error) {
     console.error("Fehler beim Überprüfen der Rolle:", error);
-    // Handle specific Discord API errors
     if (error.code === 10013) {
       return res
         .status(404)
@@ -219,18 +215,18 @@ app.get("/tickets", async (req, res) => {
     const tickets = await db
       .collection("TicketSystem")
       .find({})
-      .sort({ createdAt: 1 }) // Neueste zuerst
+      .sort({ createdAt: -1 }) // Neueste zuerst
       .toArray();
     console.log("Tickets abgerufen");
 
     const formattedTickets = tickets.map((ticket) => ({
       fileName: ticket._id.toString(),
-      title: ticket.category ? `${ticket.category} Ticket` : "Ticket", //Titel
-      date: ticket.createdAt, //createdAt
+      title: ticket.category ? `${ticket.category} Ticket` : "Ticket",
+      date: ticket.createdAt,
       threadID: ticket.threadID,
       creator: ticket.creator,
       category: ticket.category,
-      status: ticket.status ? "Geschlossen" : "Offen", // Status string
+      status: ticket.status ? "Geschlossen" : "Offen",
       closedBy: ticket.closedBy || "-",
       closedAt: ticket.closedAt || "-",
     }));
@@ -242,179 +238,61 @@ app.get("/tickets", async (req, res) => {
   }
 });
 
-// Channel-ID abrufen
-app.get("/api/tickets/:ticketId/channel", async (req, res) => {
-  const { ticketId } = req.params;
-  try {
-    const objectId = new ObjectId(ticketId);
-    const ticket = await db
-      .collection("TicketSystem")
-      .findOne({ _id: objectId });
-    if (!ticket) {
-      return res.status(200).json({ error: "Ticket nicht gefunden." });
-    }
-    res.json({ channelId: ticket.threadID });
-  } catch (error) {
-    console.error("Fehler beim Abrufen der Channel-ID:", error);
-    res.status(200).json({ error: "Serverfehler." });
-  }
-});
-
-// Neue Tickets vom Java-Bot empfangen (POST)
-app.post("/api/tickets/new", async (req, res) => {
-  try {
-    const { threadID, creator, category } = req.body; // Dekonstruiere direkt
-
-    // Validierung
-    if (!threadID || !creator || !category) {
-      return res.status(400).json({ error: "Ungültige Ticketdaten." });
-    }
-
-    // Daten in MongoDB speichern
-    const result = await db.collection("TicketSystem").insertOne({
-      threadID,
-      creator,
-      category,
-      status: false, // false = offen
-      createdAt: new Date(), // Zeitstempel
-    });
-
-    console.log("Ticket in Datenbank gespeichert:", result.insertedId);
-    sendTicketUpdates(); // Socket.IO Update
-    res.status(201).json({ message: "Ticket erfolgreich gespeichert." });
-  } catch (error) {
-    console.error("Fehler beim Speichern des Tickets:", error);
-    res.status(200).json({ error: "Fehler beim Speichern des Tickets." });
-  }
-});
-app.get("/api/tickets/:ticketId/chat", async (req, res) => {
-  const { ticketId } = req.params;
-
-  try {
-    const objectId = new ObjectId(ticketId);
-    const ticket = await db
-      .collection("TicketSystem")
-      .findOne({ _id: objectId });
-
-    if (!ticket || !ticket.threadID) {
-      return res
-        .status(404)
-        .json({ error: "Ticket oder Thread-ID nicht gefunden." });
-    }
-
-    const threadId = ticket.threadID;
-
-    // Thread abrufen
-    const thread = await client.channels.fetch(threadId);
-    if (!thread || !thread.isThread()) {
-      return res
-        .status(404)
-        .json({ error: "Thread nicht gefunden oder kein gültiger Thread." });
-    }
-
-    // Nachrichten aus dem Thread abrufen
-    const messages = await thread.messages.fetch({ limit: 100 }); // Letzte 100 Nachrichten
-
-    const formattedMessages = Array.from(messages.values())
-      .reverse()
-      .map((msg) => ({
-        author: msg.author.username,
-        content: msg.content,
-        timestamp: msg.createdTimestamp,
-        avatar: msg.author.displayAvatarURL(),
-        userId: msg.author.id,
-      }));
-
-    res.json(formattedMessages);
-    console.log("Chatverlauf gesendet\n | " + formattedMessages);
-  } catch (error) {
-    console.error("Fehler beim Abrufen des Chatverlaufs:", error);
-    res.status(500).json({ error: "Interner Serverfehler." });
-  }
-});
-
-// Hilfsfunktion: Ticket-Updates senden
-async function sendTicketUpdates() {
-  try {
-    const tickets = await db
-      .collection("TicketSystem")
-      .find({})
-      .sort({ createdAt: -1 })
-      .toArray();
-    const formattedTickets = tickets.map((ticket) => ({
-      fileName: ticket._id.toString(),
-      title: ticket.category ? `${ticket.category} Ticket` : "Ticket", //Vereinfachung
-      date: ticket.createdAt, //createdAt anzeigen
-      threadID: ticket.threadID,
-      creator: ticket.creator,
-      category: ticket.category,
-      status: ticket.status ? "Geschlossen" : "Offen", // Status string
-      closedBy: ticket.closedBy || "-", //Wenn closedBy = null, dann "-"
-      closedAt: ticket.closedAt || "-", //Wenn closedAt = null, dann "-"
-    }));
-    io.emit("ticketsUpdated", formattedTickets); // Update an alle Clients
-  } catch (error) {
-    console.error("Error sending ticket updates:", error);
-  }
-}
-
-// --- WebSocket-Verbindung (für Ticket-Updates *und* Viewer-Anzeige) ---
+// --- WebSocket-Verbindung ---
 const ticketViewers = {}; // Verfolge, wer welches Ticket ansieht
-const userAvatars = {}; // Speichere Avatar-Hashes
+const userAvatars = {}; // Speichere Avatar-URLs
 
 io.on("connection", (socket) => {
   console.log("Client verbunden");
 
   socket.on("ticketOpened", (ticketId, userId, avatarHash) => {
-    socket.join(ticketId); // Dem Raum für dieses Ticket beitreten
+    socket.join(ticketId);
     if (!ticketViewers[ticketId]) {
       ticketViewers[ticketId] = [];
     }
     if (!ticketViewers[ticketId].includes(userId)) {
       ticketViewers[ticketId].push(userId);
-      userAvatars[userId] = avatarHash; // Avatar-Hash speichern
+      userAvatars[
+        userId
+      ] = `https://cdn.discordapp.com/avatars/${userId}/${avatarHash}.png`;
     }
-    io.to(ticketId).emit(
-      "updateTicketViewers",
+    io.to(ticketId).emit("updateTicketViewers", {
       ticketId,
-      ticketViewers[ticketId],
-      userAvatars
-    );
+      viewers: ticketViewers[ticketId],
+      avatars: userAvatars,
+    });
   });
 
   socket.on("ticketClosed", (ticketId, userId) => {
-    socket.leave(ticketId); // Den Raum für dieses Ticket verlassen
+    socket.leave(ticketId);
     if (ticketViewers[ticketId]) {
       ticketViewers[ticketId] = ticketViewers[ticketId].filter(
         (id) => id !== userId
       );
       delete userAvatars[userId];
-      io.to(ticketId).emit(
-        "updateTicketViewers",
+      io.to(ticketId).emit("updateTicketViewers", {
         ticketId,
-        ticketViewers[ticketId],
-        userAvatars
-      );
+        viewers: ticketViewers[ticketId],
+        avatars: userAvatars,
+      });
     }
   });
 
   socket.on("disconnect", () => {
     console.log("Client getrennt");
-    // Aufräumen: Benutzer aus allen Tickets entfernen, die er ansieht
     for (const ticketId in ticketViewers) {
       if (ticketViewers[ticketId].includes(socket.id)) {
         ticketViewers[ticketId] = ticketViewers[ticketId].filter(
           (id) => id !== socket.id
         );
-        io.emit(
-          "updateTicketViewers",
+        delete userAvatars[socket.id];
+        io.to(ticketId).emit("updateTicketViewers", {
           ticketId,
-          ticketViewers[ticketId],
-          userAvatars
-        );
+          viewers: ticketViewers[ticketId],
+          avatars: userAvatars,
+        });
       }
     }
-    delete userAvatars[socket.id];
   });
 });
 
