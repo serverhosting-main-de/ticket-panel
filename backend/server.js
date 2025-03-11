@@ -233,15 +233,13 @@ app.get("/check-role/:userId", async (req, res) => {
 });
 
 // Tickets abrufen
-app.get("/tickets", async (req, res) => {
-  console.log("Tickets werden abgerufen");
+app.get("/api/tickets", async (req, res) => {
   try {
     const tickets = await db
       .collection("TicketSystem")
       .find({})
       .sort({ createdAt: -1 }) // Neueste zuerst
       .toArray();
-    console.log("Tickets abgerufen");
 
     const formattedTickets = tickets.map((ticket) => ({
       fileName: ticket._id.toString(),
@@ -254,11 +252,11 @@ app.get("/tickets", async (req, res) => {
       closedBy: ticket.closedBy || "-",
       closedAt: ticket.closedAt || "-",
     }));
+
     res.json(formattedTickets);
-    console.log("Tickets gesendet", formattedTickets);
   } catch (error) {
     console.error("Fehler beim Abrufen der Tickets:", error);
-    res.status(500).json({ error: "Serverfehler." });
+    res.status(500).json({ error: "Fehler beim Abrufen der Tickets." });
   }
 });
 

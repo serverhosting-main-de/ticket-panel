@@ -318,13 +318,30 @@ function Dashboard() {
     // Funktion zum Abrufen der Tickets
     const fetchTickets = async () => {
       try {
-        const tickets = await fetchData(
-          "https://backendtickets.wonder-craft.de/api/tickets"
+        const response = await axios.get(
+          "https://backendtickets.wonder-craft.de/api/tickets",
+          { withCredentials: true }
         );
-        setTickets(tickets); // Setze die Tickets im State
+        console.log("API-Antwort:", response.data); // Logge die Antwort
+        setTickets(response.data);
       } catch (error) {
         console.error("Fehler beim Abrufen der Tickets:", error);
-        setError("Fehler beim Laden der Tickets.");
+        if (error.response) {
+          // Server hat geantwortet, aber mit einem Fehler
+          console.error("Statuscode:", error.response.status);
+          console.error("Fehlermeldung:", error.response.data);
+          setError(
+            `Fehler beim Laden der Tickets: ${error.response.data.error}`
+          );
+        } else if (error.request) {
+          // Anfrage wurde gemacht, aber keine Antwort erhalten
+          console.error("Keine Antwort vom Server:", error.request);
+          setError("Keine Antwort vom Server. Bitte überprüfe die Verbindung.");
+        } else {
+          // Anderer Fehler
+          console.error("Fehler:", error.message);
+          setError(`Fehler beim Laden der Tickets: ${error.message}`);
+        }
       }
     };
 
