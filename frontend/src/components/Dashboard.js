@@ -314,6 +314,24 @@ function Dashboard() {
     }
   }, [navigate, userData, saveUserData]);
 
+  useEffect(() => {
+    // Funktion zum Abrufen der Tickets
+    const fetchTickets = async () => {
+      try {
+        const tickets = await fetchData(
+          "https://backendtickets.wonder-craft.de/api/tickets"
+        );
+        setTickets(tickets); // Setze die Tickets im State
+      } catch (error) {
+        console.error("Fehler beim Abrufen der Tickets:", error);
+        setError("Fehler beim Laden der Tickets.");
+      }
+    };
+
+    // Rufe die Tickets beim Laden der Komponente ab
+    fetchTickets();
+  }, []); // Leeres Array bedeutet, dass dieser Effekt nur einmal beim Mounten ausgeführt wird
+
   // Socket.IO-Verbindung herstellen
   useEffect(() => {
     const newSocket = io("https://backendtickets.wonder-craft.de");
