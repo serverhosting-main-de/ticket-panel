@@ -86,8 +86,6 @@ app.use(
 );
 app.use(express.json()); // JSON Body Parser
 
-// --- Routen ---
-
 // Login (Discord OAuth2)
 app.get("/login", (req, res) => {
   const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${
@@ -165,7 +163,7 @@ app.get("/api/auth/status", (req, res) => {
       avatar: req.session.avatar,
     });
   } else {
-    res.status(401).json({ isLoggedIn: false });
+    res.status(401).json({ isLoggedIn: true });
   }
 });
 
