@@ -323,14 +323,17 @@ function Dashboard() {
           { withCredentials: true }
         );
         console.log("API-Antwort:", response.data);
+
+        // Tickets aus der API-Antwort
         const tickets = response.data;
-        tickets.forEach((ticket) => {
-          if (hasRole) return;
-          if (ticket.creator !== userData.username) {
-            tickets.removeItem(ticket);
-          }
-        });
-        setTickets(tickets);
+
+        // Filtere die Tickets basierend auf der Rolle und dem Ersteller
+        const filteredTickets = hasRole
+          ? tickets // Wenn der Benutzer die Rolle hat, zeige alle Tickets an
+          : tickets.filter((ticket) => ticket.creator === userData.username); // Andernfalls zeige nur die eigenen Tickets an
+
+        // Setze die gefilterten Tickets im State
+        setTickets(filteredTickets);
       } catch (error) {
         console.error("Fehler beim Abrufen der Tickets:", error);
         if (error.response) {
@@ -354,7 +357,7 @@ function Dashboard() {
 
     // Rufe die Tickets beim Laden der Komponente ab
     fetchTickets();
-  }, [hasRole, userData.username]); // Leeres Array bedeutet, dass dieser Effekt nur einmal beim Mounten ausgeführt wird
+  }, [hasRole, userData.username]); // Abhängigkeiten: hasRole und userData.username // Leeres Array bedeutet, dass dieser Effekt nur einmal beim Mounten ausgeführt wird
 
   // Socket.IO-Verbindung herstellen
   useEffect(() => {
