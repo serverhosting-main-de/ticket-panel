@@ -12,7 +12,7 @@ const path = require("path");
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(express.static(path.join(__dirname, "app", "tickets")));
+app.use(express.static(path.join(__dirname, "tickets")));
 
 // --- HTTP Server & Socket.IO ---
 const server = http.createServer(app);
@@ -37,7 +37,7 @@ async function sendTicketUpdates() {
       .sort({ createdAt: -1 })
       .toArray();
     const formattedTickets = tickets.map((ticket) => ({
-      fileName: ticket._id.toString(),
+      id: ticket._id,
       title: ticket.category ? `${ticket.category} Ticket` : "Ticket",
       date: ticket.createdAt,
       threadID: ticket.threadID,

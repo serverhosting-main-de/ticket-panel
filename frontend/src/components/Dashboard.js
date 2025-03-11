@@ -382,8 +382,8 @@ function Dashboard() {
 
   // Chatverlauf öffnen
   const openTicketChat = useCallback(
-    async (ticketId) => {
-      const ticketById = tickets.find((t) => t.id === ticketId);
+    async (threadId) => {
+      const ticketById = tickets.find((t) => t.threadID === threadId);
       if (!ticketById) {
         setModalContent("Ticket nicht gefunden.");
         return;
@@ -393,7 +393,7 @@ function Dashboard() {
         // Ticket ist offen: Lade den Chatverlauf
         try {
           const chatHistory = await fetchData(
-            `https://backendtickets.wonder-craft.de/api/tickets/${ticketId}/chat`
+            `https://backendtickets.wonder-craft.de/api/tickets/${threadId}/chat`
           );
 
           const formattedChatHistory = chatHistory.map((msg, index) => (
@@ -417,7 +417,7 @@ function Dashboard() {
           if (socket && userData) {
             socket.emit(
               "ticketOpened",
-              ticketId,
+              threadId,
               userData.userId,
               userData.avatar?.split("/").pop().split(".")[0]
             );
@@ -429,7 +429,7 @@ function Dashboard() {
         // Ticket ist geschlossen: Lade die HTML-Datei
         try {
           const response = await fetch(
-            `https://backendtickets.wonder-craft.de/tickets/${ticketById.threadID}.html`
+            `https://backendtickets.wonder-craft.de/tickets/${threadId}.html`
           );
 
           if (!response.ok) {
@@ -457,7 +457,7 @@ function Dashboard() {
     setModalContent(null);
     if (socket && userData) {
       const currentTicket = tickets.find(
-        (t) => t.fileName === modalContent?.ticketId
+        (t) => t.threadID === modalContent?.threadID
       );
       if (currentTicket) {
         socket.emit("ticketClosed", currentTicket.threadID, userData.userId);
@@ -538,7 +538,9 @@ function Dashboard() {
                 tickets.map((ticket) => (
                   <TableRow key={ticket.id}>
                     <TableCell>
-                      <ActionButton onClick={() => openTicketChat(ticket.id)}>
+                      <ActionButton
+                        onClick={() => openTicketChat(ticket.threadId)}
+                      >
                         Anzeigen
                       </ActionButton>
                     </TableCell>
