@@ -240,8 +240,8 @@ app.get("/api/tickets", async (req, res) => {
       closedBy: ticket.closedBy || "-",
       closedAt: ticket.closedAt || "-",
     }));
-    io.emit("ticketsUpdated", formattedTickets);
 
+    // Überprüfe die Rolle des Benutzers
     const hasRole = await client.guilds
       .fetch(process.env.GUILD_ID)
       .then((guild) => guild.members.fetch(req.session.userId))
@@ -251,12 +251,16 @@ app.get("/api/tickets", async (req, res) => {
         )
       )
       .catch(() => false);
-    if (!hasRole) {
-      const filteredTickets = formattedTickets.filter(
-        (ticket) => ticket.creatorID === req.session.userId
-      );
-      return res.json(filteredTickets);
-    }
+
+    // Filtere die Tickets basierend auf der Rolle
+    const filteredTickets = hasRole
+      ? formattedTickets
+      : formattedTickets.filter(
+          (ticket) => ticket.creatorID === req.session.userId
+        );
+
+    res.json(filteredTickets);
+    io.emit("ticketsUpdated", filteredTickets); // Sende aktualisierte Tickets an alle Clients
   } catch (error) {
     console.error("Fehler beim Abrufen der Tickets:", error);
     res.status(500).json({ error: "Fehler beim Abrufen der Tickets." });

@@ -228,6 +228,7 @@ const LogoutButton = styled(ActionButton)`
     background-color: #c0392b;
   }
 `;
+
 const fetchData = async (url, options = {}) => {
   try {
     const response = await axios.get(url, options);
