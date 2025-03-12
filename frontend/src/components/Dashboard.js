@@ -304,6 +304,8 @@ function Dashboard() {
             );
             setHasRole(roleResponse.hasRole);
             setStatus(roleResponse.status);
+            console.log("Benutzerrolle:", roleResponse);
+            console.log("Benutzerstatus:", roleResponse.status);
           } catch (error) {
             console.error("Fehler beim Abrufen der Benutzerrolle:", error);
             setError("Fehler beim Laden der Benutzerrolle.");
