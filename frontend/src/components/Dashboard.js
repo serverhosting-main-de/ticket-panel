@@ -247,7 +247,6 @@ function Dashboard() {
   const [tickets, setTickets] = useState([]);
   const [hasRole, setHasRole] = useState(null);
   const [status, setStatus] = useState("offline");
-  const [socket, setSocket] = useState(null);
   const [modalContent, setModalContent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -302,32 +301,6 @@ function Dashboard() {
         } else if (!userData) {
           navigate("/login");
           return;
-        }
-
-        if (authStatus.userId || userData?.userId) {
-          try {
-            const roleResponse = await fetchData(
-              `https://backendtickets.wonder-craft.de/check-role/${
-                authStatus.userId || userData.userId
-              }`
-            );
-            // Überprüfe, ob die Antwort einen Fehler enthält
-            if (roleResponse.error) {
-              setError(roleResponse.error); // Setze die Fehlermeldung
-              setHasRole(false); // Setze hasRole auf false
-              setStatus("offline"); // Setze den Status auf offline
-            } else {
-              // Wenn kein Fehler vorliegt, aktualisiere hasRole und status
-              setHasRole(roleResponse.hasRole);
-              setStatus(roleResponse.status);
-            }
-          } catch (error) {
-            // Fehlerbehandlung für Netzwerkfehler oder andere Ausnahmen
-            console.error("Fehler beim Abrufen der Benutzerrolle:", error);
-            setError("Fehler beim Laden von Benutzerdaten.");
-            setHasRole(false); // Setze hasRole auf false
-            setStatus("offline"); // Setze den Status auf offline
-          }
         }
       } catch (error) {
         console.error("Authentication check failed:", error);
@@ -399,16 +372,18 @@ function Dashboard() {
   // Socket.IO-Verbindung herstellen
   useEffect(() => {
     const newSocket = io("https://backendtickets.wonder-craft.de");
-    setSocket(newSocket);
 
     newSocket.on("ticketsUpdated", (updatedTickets) => {
-      setTickets(updatedTickets);
+      const filteredTickets = hasRole
+        ? updatedTickets
+        : updatedTickets.filter((t) => t.creatorID === userData.userId);
+      setTickets(filteredTickets);
     });
 
     return () => {
       newSocket.disconnect();
     };
-  }, []);
+  }, [hasRole, userData.userId]);
 
   // Chatverlauf öffnen
   const openTicketChat = useCallback(

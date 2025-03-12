@@ -27,37 +27,11 @@ const mongoUrl = process.env.MONGO_URL;
 const dbName = "Serverhosting"; // Deine Datenbank
 let db;
 
-async function sendTicketUpdates() {
-  try {
-    const tickets = await db
-      .collection("TicketSystem")
-      .find({})
-      .sort({ createdAt: -1 })
-      .toArray();
-    const formattedTickets = tickets.map((ticket) => ({
-      title: ticket.category ? `${ticket.category} Ticket` : "Ticket",
-      date: ticket.createdAt,
-      threadID: ticket.threadID,
-      creator: ticket.creator,
-      creatorID: ticket.creatorID,
-      category: ticket.category,
-      status: ticket.status,
-      claimedBy: ticket.claimedBy || "-",
-      closedBy: ticket.closedBy || "-",
-      closedAt: ticket.closedAt || "-",
-    }));
-    io.emit("ticketsUpdated", formattedTickets); // Update an alle Clients
-  } catch (error) {
-    console.error("Error sending ticket updates:", error);
-  }
-}
-
 async function connectToMongo() {
   try {
     const client = await MongoClient.connect(mongoUrl);
     db = client.db(dbName);
     console.log("Connected to MongoDB");
-    sendTicketUpdates(); // Initialen Ticket-Update nach Verbindungsaufbau
   } catch (error) {
     console.error("Error connecting to MongoDB:", error);
     process.exit(1); // Beende den Prozess bei einem kritischen Fehler
@@ -176,8 +150,6 @@ app.get("/callback", async (req, res) => {
     // 3. Benutzer in Session speichern
     req.session.userId = discordUser.id;
     req.session.username = discordUser.username;
-
-    // Korrekter Avatar-Link (nur einmal die Basis-URL)
     req.session.avatar = `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`;
 
     // 4. Weiterleiten mit Benutzerdaten als Query-Parameter
@@ -263,13 +235,28 @@ app.get("/api/tickets", async (req, res) => {
       creator: ticket.creator,
       creatorID: ticket.creatorID,
       category: ticket.category,
-      status: ticket.status ? "Offen" : "Geschlossen",
+      claimedBy: ticket.claimedBy || "-",
+      status: ticket.status,
       closedBy: ticket.closedBy || "-",
       closedAt: ticket.closedAt || "-",
     }));
     io.emit("ticketsUpdated", formattedTickets);
 
-    res.json(formattedTickets);
+    const hasRole = await client.guilds
+      .fetch(process.env.GUILD_ID)
+      .then((guild) => guild.members.fetch(req.session.userId))
+      .then((member) =>
+        member.roles.cache.some(
+          (role) => role.name === process.env.REQUIRED_ROLE
+        )
+      )
+      .catch(() => false);
+    if (!hasRole) {
+      const filteredTickets = formattedTickets.filter(
+        (ticket) => ticket.creatorID === req.session.userId
+      );
+      return res.json(filteredTickets);
+    }
   } catch (error) {
     console.error("Fehler beim Abrufen der Tickets:", error);
     res.status(500).json({ error: "Fehler beim Abrufen der Tickets." });
