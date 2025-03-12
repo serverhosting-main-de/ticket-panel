@@ -41,7 +41,8 @@ async function sendTicketUpdates() {
       creator: ticket.creator,
       creatorID: ticket.creatorID,
       category: ticket.category,
-      status: ticket.status ? "Offen" : "Geschlossen",
+      status: ticket.status,
+      claimedBy: ticket.claimedBy || "-",
       closedBy: ticket.closedBy || "-",
       closedAt: ticket.closedAt || "-",
     }));

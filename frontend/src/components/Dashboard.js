@@ -568,7 +568,7 @@ function Dashboard() {
                       {ticket.status ? "Offen" : "Geschlossen"}
                     </TableCell>
                     <TableCell>
-                      {ticket.claimedBy ? ticket.claimedBy : "-"}
+                      {ticket.claimedBy !== null ? ticket.claimedBy : "-"}
                     </TableCell>
                     <TableCell>
                       {ticket.date
