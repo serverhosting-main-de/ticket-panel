@@ -355,6 +355,8 @@ function Dashboard() {
           ? tickets
           : tickets.filter((ticket) => ticket.creatorID === userData.userId);
 
+        console.log("Tickets:", filteredTickets);
+
         // Setze die gefilterten Tickets im State
         setTickets(filteredTickets);
       } catch (error) {
