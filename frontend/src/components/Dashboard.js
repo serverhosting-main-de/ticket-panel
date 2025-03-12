@@ -321,6 +321,8 @@ function Dashboard() {
   }, [navigate, userData, saveUserData]);
 
   useEffect(() => {
+    if (!userData) return;
+    if (!userData.userId) return;
     // Funktion zum Abrufen der Tickets
     const fetchTickets = async () => {
       try {
@@ -367,7 +369,7 @@ function Dashboard() {
         prevTickets.filter((t) => t.creatorID === userData.userId)
       );
     }
-  }, [hasRole, userData.userId]);
+  }, [hasRole, userData]);
 
   // Socket.IO-Verbindung herstellen
   useEffect(() => {
