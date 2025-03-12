@@ -363,7 +363,7 @@ function Dashboard() {
 
         // Filtere die Tickets basierend auf der Rolle und dem Ersteller
         const filteredTickets = hasRole
-          ? tickets // Wenn der Benutzer die Rolle hat, zeige alle Tickets an
+          ? tickets
           : tickets.filter((ticket) => ticket.creatorID === userData.userId); // Andernfalls filtere die Tickets nach dem Ersteller
 
         // Setze die gefilterten Tickets im State
@@ -389,8 +389,12 @@ function Dashboard() {
       }
     };
 
-    // Rufe die Tickets beim Laden der Komponente ab
-    fetchTickets();
+    if (hasRole !== null && userData.userId) {
+      fetchTickets();
+      setTickets((prevTickets) =>
+        prevTickets.filter((t) => t.creatorID === userData.userId)
+      );
+    }
   }, [hasRole, userData.userId]); // Abhängigkeiten: hasRole und userData.username // Leeres Array bedeutet, dass dieser Effekt nur einmal beim Mounten ausgeführt wird
 
   // Socket.IO-Verbindung herstellen
@@ -544,36 +548,39 @@ function Dashboard() {
               : "Du hast Benutzer Rechte."}
           </p>
 
-          <h2>Deine Tickets</h2>
+          <h1>Tickets</h1>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableCell>
-                  <strong>Aktion</strong>
+                  <strong>Kategorie</strong>
+                </TableCell>
+                <TableCell>
+                  <strong>Ticket ID</strong>
                 </TableCell>
                 <TableCell>
                   <strong>Ersteller</strong>
                 </TableCell>
                 <TableCell>
-                  <strong>Kategorie</strong>
-                </TableCell>
-                <TableCell>
-                  <strong>Thread ID</strong>
-                </TableCell>
-                <TableCell>
-                  <strong>Erstellt</strong>
+                  <strong>Ersteller ID</strong>
                 </TableCell>
                 <TableCell>
                   <strong>Status</strong>
                 </TableCell>
                 <TableCell>
-                  <strong>Geschlossen von</strong>
+                  <strong>Claimed by</strong>
+                </TableCell>
+                <TableCell>
+                  <strong>Erstellt am</strong>
                 </TableCell>
                 <TableCell>
                   <strong>Geschlossen am</strong>
                 </TableCell>
                 <TableCell>
-                  <strong>Aktuelle Bearbeiter</strong>
+                  <strong>Geschlossen von</strong>
+                </TableCell>
+                <TableCell>
+                  <strong>Transkript</strong>
                 </TableCell>
               </TableRow>
             </TableHeader>
@@ -581,6 +588,45 @@ function Dashboard() {
               {tickets.length > 0 ? (
                 tickets.map((ticket) => (
                   <TableRow key={ticket.threadID}>
+                    <TableCell>{ticket.category}</TableCell>
+                    <TableCell>{ticket.threadID}</TableCell>
+                    <TableCell>{ticket.creator}</TableCell>
+                    <TableCell>{ticket.creatorID}</TableCell>
+                    <TableCell>
+                      {ticket.status ? "Offen" : "Geschlossen"}
+                    </TableCell>
+                    <TableCell>
+                      {ticketViewers[ticket.threadID]?.viewers?.map(
+                        (viewerId) => {
+                          const avatarHash =
+                            ticketViewers[ticket.threadID]?.avatars[viewerId];
+                          return (
+                            <Avatar
+                              key={viewerId}
+                              src={`https://cdn.discordapp.com/avatars/${viewerId}/${avatarHash}.png`}
+                              alt="Avatar"
+                              style={{
+                                width: "30px",
+                                height: "30px",
+                                marginRight: "5px",
+                              }}
+                            />
+                          );
+                        }
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {ticket.date
+                        ? new Date(ticket.date).toLocaleString()
+                        : "-"}
+                    </TableCell>
+                    <TableCell>
+                      {ticket.closedAt &&
+                      !isNaN(new Date(ticket.closedAt).getTime())
+                        ? new Date(ticket.closedAt).toLocaleString()
+                        : "-"}
+                    </TableCell>
+                    <TableCell>{ticket.closedBy || "-"}</TableCell>
                     <TableCell>
                       <ActionButton
                         onClick={() => openTicketChat(ticket.threadID)}
@@ -588,45 +634,11 @@ function Dashboard() {
                         Anzeigen
                       </ActionButton>
                     </TableCell>
-                    <TableCell>{ticket.creator}</TableCell>
-                    <TableCell>{ticket.category}</TableCell>
-                    <TableCell>{ticket.threadID}</TableCell>
-                    <TableCell>
-                      {ticket.date
-                        ? new Date(ticket.date).toLocaleString()
-                        : "-"}
-                    </TableCell>
-                    <TableCell>{ticket.status}</TableCell>
-                    <TableCell>{ticket.closedBy}</TableCell>
-                    <TableCell>
-                      {ticket.closedAt &&
-                      !isNaN(new Date(ticket.closedAt).getTime())
-                        ? new Date(ticket.closedAt).toLocaleString()
-                        : "-"}
-                    </TableCell>
-                    <TableCell>
-                      {ticketViewers[ticket.threadID]?.viewers?.map(
-                        (viewerId) => (
-                          <Avatar
-                            key={viewerId}
-                            src={`https://cdn.discordapp.com/avatars/${viewerId}/${
-                              ticketViewers[ticket.threadID]?.avatars[viewerId]
-                            }.png`}
-                            alt="Avatar"
-                            style={{
-                              width: "30px",
-                              height: "30px",
-                              marginRight: "5px",
-                            }}
-                          />
-                        )
-                      )}
-                    </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan="9" style={{ textAlign: "center" }}>
+                  <TableCell colSpan="10" style={{ textAlign: "center" }}>
                     Keine Tickets gefunden.
                   </TableCell>
                 </TableRow>

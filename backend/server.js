@@ -175,6 +175,8 @@ app.get("/callback", async (req, res) => {
     // 3. Benutzer in Session speichern
     req.session.userId = discordUser.id;
     req.session.username = discordUser.username;
+
+    // Korrekter Avatar-Link (nur einmal die Basis-URL)
     req.session.avatar = `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`;
 
     // 4. Weiterleiten mit Benutzerdaten als Query-Parameter
@@ -292,7 +294,7 @@ io.on("connection", (socket) => {
     if (!ticketViewers[threadID].includes(userId)) {
       ticketViewers[threadID].push(userId);
 
-      // Speichere den Avatar des Benutzers
+      // Speichere den Avatar des Benutzers (nur einmal die Basis-URL)
       userAvatars[
         userId
       ] = `https://cdn.discordapp.com/avatars/${userId}/${avatarHash}.png`;
