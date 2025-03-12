@@ -249,7 +249,6 @@ function Dashboard() {
   const [status, setStatus] = useState("offline");
   const [socket, setSocket] = useState(null);
   const [modalContent, setModalContent] = useState(null);
-  const [ticketViewers, setTicketViewers] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [userData, setUserData] = useState(() => {
@@ -395,7 +394,7 @@ function Dashboard() {
         prevTickets.filter((t) => t.creatorID === userData.userId)
       );
     }
-  }, [hasRole, userData.userId]); // Abhängigkeiten: hasRole und userData.username // Leeres Array bedeutet, dass dieser Effekt nur einmal beim Mounten ausgeführt wird
+  }, [hasRole, userData.userId]);
 
   // Socket.IO-Verbindung herstellen
   useEffect(() => {
@@ -404,13 +403,6 @@ function Dashboard() {
 
     newSocket.on("ticketsUpdated", (updatedTickets) => {
       setTickets(updatedTickets);
-    });
-
-    newSocket.on("updateTicketViewers", (threadID, viewers, avatars) => {
-      setTicketViewers((prevViewers) => ({
-        ...prevViewers,
-        [threadID]: { viewers, avatars },
-      }));
     });
 
     return () => {
@@ -484,34 +476,14 @@ function Dashboard() {
           });
         }
       }
-
-      // Setze den aktuellen Benutzer als Betrachter des Tickets
-      if (socket && userData) {
-        socket.emit(
-          "ticketOpened",
-          threadId,
-          userData.userId,
-          userData.avatar?.split("/").pop().split(".")[0]
-        );
-      }
     },
-    [socket, userData, tickets]
+    [tickets]
   );
 
   // Modal schließen
   const closeModal = useCallback(() => {
-    if (socket && userData && modalContent) {
-      // Finde das aktuelle Ticket, das im Modal angezeigt wird
-      const currentTicket = tickets.find(
-        (t) => t.threadID === modalContent.threadID
-      );
-      if (currentTicket) {
-        // Sende den ticketClosed-Event an den Server
-        socket.emit("ticketClosed", currentTicket.threadID, userData.userId);
-      }
-    }
     setModalContent(null);
-  }, [socket, userData, tickets, modalContent]);
+  }, []);
 
   // Logout
   const handleLogout = () => {
@@ -596,24 +568,7 @@ function Dashboard() {
                       {ticket.status ? "Offen" : "Geschlossen"}
                     </TableCell>
                     <TableCell>
-                      {ticketViewers[ticket.threadID]?.viewers?.map(
-                        (viewerId) => {
-                          const avatarHash =
-                            ticketViewers[ticket.threadID]?.avatars[viewerId];
-                          return (
-                            <Avatar
-                              key={viewerId}
-                              src={`https://cdn.discordapp.com/avatars/${viewerId}/${avatarHash}.png`}
-                              alt="Avatar"
-                              style={{
-                                width: "30px",
-                                height: "30px",
-                                marginRight: "5px",
-                              }}
-                            />
-                          );
-                        }
-                      )}
+                      {ticket.claimedBy ? ticket.claimedBy : "-"}
                     </TableCell>
                     <TableCell>
                       {ticket.date
