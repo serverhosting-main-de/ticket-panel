@@ -228,8 +228,6 @@ const LogoutButton = styled(ActionButton)`
     background-color: #c0392b;
   }
 `;
-
-// Hilfsfunktion für API-Aufrufe
 const fetchData = async (url, options = {}) => {
   try {
     const response = await axios.get(url, options);
@@ -298,6 +296,20 @@ function Dashboard() {
 
         if (authStatus.isLoggedIn) {
           saveUserData(authStatus);
+
+          // Überprüfe die Rolle und den Status des Benutzers
+          try {
+            const roleResponse = await fetchData(
+              `https://backendtickets.wonder-craft.de/check-role/${authStatus.userId}`
+            );
+            setHasRole(roleResponse.hasRole);
+            setStatus(roleResponse.status);
+          } catch (error) {
+            console.error("Fehler beim Abrufen der Benutzerrolle:", error);
+            setError("Fehler beim Laden der Benutzerrolle.");
+            setHasRole(false);
+            setStatus("offline");
+          }
         } else if (!userData) {
           navigate("/login");
           return;
@@ -320,10 +332,10 @@ function Dashboard() {
     }
   }, [navigate, userData, saveUserData]);
 
+  // Tickets abrufen
   useEffect(() => {
-    if (!userData) return;
-    if (!userData.userId) return;
-    // Funktion zum Abrufen der Tickets
+    if (!userData || !userData.userId) return;
+
     const fetchTickets = async () => {
       try {
         const response = await axios.get(
@@ -338,41 +350,23 @@ function Dashboard() {
         // Filtere die Tickets basierend auf der Rolle und dem Ersteller
         const filteredTickets = hasRole
           ? tickets
-          : tickets.filter((ticket) => ticket.creatorID === userData.userId); // Andernfalls filtere die Tickets nach dem Ersteller
+          : tickets.filter((ticket) => ticket.creatorID === userData.userId);
 
         // Setze die gefilterten Tickets im State
         setTickets(filteredTickets);
       } catch (error) {
         console.error("Fehler beim Abrufen der Tickets:", error);
-        if (error.response) {
-          // Server hat geantwortet, aber mit einem Fehler
-          console.error("Statuscode:", error.response.status);
-          console.error("Fehlermeldung:", error.response.data);
-          setError(
-            `Fehler beim Laden der Tickets: ${error.response.data.error}`
-          );
-        } else if (error.request) {
-          // Anfrage wurde gemacht, aber keine Antwort erhalten
-          console.error("Keine Antwort vom Server:", error.request);
-          setError("Keine Antwort vom Server. Bitte überprüfe die Verbindung.");
-        } else {
-          // Anderer Fehler
-          console.error("Fehler:", error.message);
-          setError(`Fehler beim Laden der Tickets: ${error.message}`);
-        }
+        setError("Fehler beim Laden der Tickets.");
       }
     };
 
-    if (hasRole !== null && userData.userId) {
-      fetchTickets();
-      setTickets((prevTickets) =>
-        prevTickets.filter((t) => t.creatorID === userData.userId)
-      );
-    }
+    fetchTickets();
   }, [hasRole, userData]);
 
   // Socket.IO-Verbindung herstellen
   useEffect(() => {
+    if (!userData || !userData.userId) return;
+
     const newSocket = io("https://backendtickets.wonder-craft.de");
 
     newSocket.on("ticketsUpdated", (updatedTickets) => {
@@ -385,7 +379,7 @@ function Dashboard() {
     return () => {
       newSocket.disconnect();
     };
-  }, [hasRole, userData.userId]);
+  }, [hasRole, userData]);
 
   // Chatverlauf öffnen
   const openTicketChat = useCallback(
@@ -416,7 +410,7 @@ function Dashboard() {
 
           setModalContent({
             content: formattedChatHistory,
-            threadID: threadId, // Speichere die threadID im modalContent
+            threadID: threadId,
           });
         } catch (error) {
           setModalContent({
@@ -443,7 +437,7 @@ function Dashboard() {
                 style={{ whiteSpace: "pre-wrap" }}
               />
             ),
-            threadID: threadId, // Speichere die threadID im modalContent
+            threadID: threadId,
           });
         } catch (error) {
           console.error("Fehler beim Laden der HTML-Datei:", error);
