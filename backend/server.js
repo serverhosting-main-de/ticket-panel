@@ -191,21 +191,27 @@ app.get("/check-role/:userId", async (req, res) => {
     return res.status(400).json({ error: "Ungültige Benutzer-ID." });
   }
   console.log(`Check-role aufgerufen für userID: ${userId}`);
+
   try {
     const guild = await client.guilds.fetch(process.env.GUILD_ID);
     if (!guild) {
       return res.status(404).json({ error: "Server (Guild) nicht gefunden." });
     }
+
     const member = await guild.members.fetch(userId);
     if (!member) {
       return res
         .status(404)
         .json({ error: "Benutzer nicht auf dem Server gefunden." });
     }
+
     const hasRole = member.roles.cache.some(
       (role) => role.name === process.env.REQUIRED_ROLE
     );
+
     const status = member.presence?.status || "offline";
+    console.log(`Benutzerrolle: ${hasRole}, Status: ${status}`); // Debugging-Ausgabe
+
     res.json({ hasRole, status });
   } catch (error) {
     console.error("Fehler beim Überprüfen der Rolle:", error);
