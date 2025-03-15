@@ -211,6 +211,7 @@ function Dashboard() {
         );
 
         if (authStatus.isLoggedIn) {
+          console.log("Eingeloggt:", authStatus);
           saveUserData(authStatus);
 
           const roleResponse = await fetchData(
@@ -219,6 +220,7 @@ function Dashboard() {
           setHasRole(roleResponse.hasRole);
           setStatus(roleResponse.status);
         } else if (!userData) {
+          console.log("Nicht eingeloggt, leite weiter...");
           navigate("/login");
         }
       } catch (error) {
