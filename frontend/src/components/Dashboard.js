@@ -157,6 +157,7 @@ const LogoutButton = styled(ActionButton)`
 const fetchData = async (url, options = {}) => {
   try {
     const response = await axios.get(url, options);
+    console.log(`Daten von ${url} abgerufen:`, response.data);
     return response.data;
   } catch (error) {
     console.error(`Fehler beim Abrufen von ${url}:`, error);
@@ -223,6 +224,8 @@ function Dashboard() {
           const roleResponse = await fetchData(
             `https://backendtickets.wonder-craft.de/check-role/${authStatus.userId}`
           );
+
+          console.log("Rollenantwort:", roleResponse);
 
           // Speichere hasRole und Status in den userData
           const updatedUserData = {
