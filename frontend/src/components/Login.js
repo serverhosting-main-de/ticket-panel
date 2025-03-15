@@ -1,6 +1,7 @@
 import React from "react";
 import styled from "styled-components";
 
+// Styled Components
 const LoginContainer = styled.div`
   display: flex;
   justify-content: center;
@@ -40,6 +41,11 @@ const LoginButton = styled.button`
   &:hover {
     transform: translateY(-3px);
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
   }
 `;
 

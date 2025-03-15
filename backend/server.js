@@ -6,7 +6,7 @@ const cors = require("cors");
 const { Client, GatewayIntentBits, Partials } = require("discord.js");
 const http = require("http");
 const { Server } = require("socket.io");
-const { MongoClient, ObjectId } = require("mongodb");
+const { MongoClient } = require("mongodb");
 const path = require("path");
 
 const app = express();
@@ -63,27 +63,27 @@ client.once("ready", () => {
 client.login(process.env.DISCORD_TOKEN);
 
 // --- Middleware ---
-// CORS (nur für Produktion)
-app.use(
-  cors({
-    origin: "https://tickets.wonder-craft.de",
-    credentials: true,
-  })
-);
 
-// Express Session (nur für Produktion)
 app.use(
   session({
-    secret: process.env.SESSION_SECRET,
+    secret: process.env.SESSION_SECRET, // Ein sicherer Schlüssel
     resave: false,
     saveUninitialized: true,
     cookie: {
-      secure: true, // HTTPS erforderlich
+      secure: true, // Nur über HTTPS
       sameSite: "none", // Erforderlich für CORS
-      httpOnly: true,
+      httpOnly: true, // Schutz vor XSS-Angriffen
     },
   })
 );
+
+app.use(
+  cors({
+    origin: "https://tickets.wonder-craft.de", // Erlaube nur dein Frontend
+    credentials: true, // Cookies zulassen
+  })
+);
+
 app.use(express.json()); // JSON Body Parser
 
 // Setze das Working Directory auf /app
@@ -159,6 +159,28 @@ app.get("/callback", async (req, res) => {
     res.redirect(
       `https://tickets.wonder-craft.de/dashboard?username=${discordUser.username}&userId=${discordUser.id}&avatar=${discordUser.avatar}`
     );
+
+    req.session.hasRole = false; // Standardmäßig keine Rolle
+    //Check if user has the required role
+    try {
+      const guild = await client.guilds.fetch(process.env.GUILD_ID);
+      if (!guild) {
+        console.error("Server (Guild) nicht gefunden.");
+        return;
+      }
+
+      const member = await guild.members.fetch(discordUser.id);
+      if (!member) {
+        console.error("Benutzer nicht auf dem Server gefunden.");
+        return;
+      }
+
+      req.session.hasRole = member.roles.cache.some(
+        (role) => role.name === process.env.REQUIRED_ROLE
+      );
+    } catch (error) {
+      console.error("Fehler beim Überprüfen der Rolle:", error);
+    }
   } catch (error) {
     console.error("Fehler beim Discord OAuth2 Callback:", error);
     const errorMessage = error.response
@@ -172,6 +194,7 @@ app.get("/callback", async (req, res) => {
 
 // Authentifizierungsstatus prüfen
 app.get("/api/auth/status", (req, res) => {
+  console.log("Session-Daten:", req.session); // Debugging-Ausgabe
   if (req.session.userId) {
     res.json({
       isLoggedIn: true,
@@ -190,7 +213,6 @@ app.get("/check-role/:userId", async (req, res) => {
   if (!userId || !/^\d+$/.test(userId)) {
     return res.status(400).json({ error: "Ungültige Benutzer-ID." });
   }
-  console.log(`Check-role aufgerufen für userID: ${userId}`);
 
   try {
     const guild = await client.guilds.fetch(process.env.GUILD_ID);
@@ -210,8 +232,6 @@ app.get("/check-role/:userId", async (req, res) => {
     );
 
     const status = member.presence?.status || "offline";
-    console.log(`Benutzerrolle: ${hasRole}, Status: ${status}`); // Debugging-Ausgabe
-
     res.json({ hasRole, status });
   } catch (error) {
     console.error("Fehler beim Überprüfen der Rolle:", error);
@@ -237,6 +257,7 @@ app.get("/api/tickets", async (req, res) => {
       .find({})
       .sort({ createdAt: -1 })
       .toArray();
+
     const formattedTickets = tickets.map((ticket) => ({
       title: ticket.category ? `${ticket.category} Ticket` : "Ticket",
       date: ticket.createdAt,
@@ -250,7 +271,7 @@ app.get("/api/tickets", async (req, res) => {
       closedAt: ticket.closedAt || "-",
     }));
 
-    // Verwende hasRole aus der Session
+    // Überprüfe die Rolle des Benutzers
     const hasRole = req.session.hasRole || false;
 
     // Filtere die Tickets basierend auf der Rolle
