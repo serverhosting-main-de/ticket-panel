@@ -86,10 +86,13 @@ app.use(
 );
 app.use(express.json()); // JSON Body Parser
 
-process.chdir("/app"); // Setze das Working Directory auf /app
+// Setze das Working Directory auf /app
+process.chdir("/app");
 
+// Statische Dateien für geschlossene Tickets
 app.use("/tickets", express.static("tickets"));
 
+// Route für geschlossene Tickets
 app.get("/tickets/:threadID", (req, res) => {
   const { threadID } = req.params;
   if (!threadID || !/^[a-f0-9]{24}$/.test(threadID)) {

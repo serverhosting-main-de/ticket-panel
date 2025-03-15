@@ -272,6 +272,7 @@ function Dashboard() {
     const urlUsername = searchParams.get("username");
     const urlUserId = searchParams.get("userId");
     const urlAvatar = searchParams.get("avatar");
+    console.log("Query-Parameter:", urlUsername, urlUserId, urlAvatar);
 
     if (urlUsername && urlUserId) {
       const newUserData = {
@@ -296,6 +297,7 @@ function Dashboard() {
         );
 
         if (authStatus.isLoggedIn) {
+          console.log("Benutzer ist angemeldet:", authStatus);
           saveUserData(authStatus);
 
           // Überprüfe die Rolle und den Status des Benutzers
@@ -305,9 +307,10 @@ function Dashboard() {
             const roleResponse = await fetchData(
               `https://backendtickets.wonder-craft.de/check-role/${authStatus.userId}`
             );
+            console.log("Rollenantwort:", roleResponse); // Debugging-Ausgabe
             setHasRole(roleResponse.hasRole);
             setStatus(roleResponse.status);
-            console.log("Benutzerrolle:", roleResponse);
+            console.log("Benutzerrolle:", roleResponse.hasRole);
             console.log("Benutzerstatus:", roleResponse.status);
           } catch (error) {
             console.error("Fehler beim Abrufen der Benutzerrolle:", error);
