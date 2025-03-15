@@ -132,8 +132,17 @@ const LoadingSpinner = styled.div`
   border-radius: 50%;
   width: 40px;
   height: 40px;
-  animation: 10 1s linear infinite;
+  animation: spin 1s linear infinite;
   margin: 50px auto;
+
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
 `;
 
 const LogoutButton = styled(ActionButton)`
@@ -160,8 +169,6 @@ function Dashboard() {
   const location = useLocation();
 
   const [tickets, setTickets] = useState([]);
-  const [hasRole, setHasRole] = useState(null);
-  const [status, setStatus] = useState("offline");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [userData, setUserData] = useState(() => {
@@ -170,6 +177,8 @@ function Dashboard() {
   });
 
   const isLoggedIn = !!userData;
+  const hasRole = userData?.hasRole || false;
+  const status = userData?.status || "offline";
 
   const saveUserData = useCallback((data) => {
     localStorage.setItem("userData", JSON.stringify(data));
@@ -211,16 +220,18 @@ function Dashboard() {
         );
 
         if (authStatus.isLoggedIn) {
-          console.log("Eingeloggt:", authStatus);
-          saveUserData(authStatus);
-
           const roleResponse = await fetchData(
             `https://backendtickets.wonder-craft.de/check-role/${authStatus.userId}`
           );
-          setHasRole(roleResponse.hasRole);
-          setStatus(roleResponse.status);
+
+          // Speichere hasRole und Status in den userData
+          const updatedUserData = {
+            ...authStatus,
+            hasRole: roleResponse.hasRole,
+            status: roleResponse.status,
+          };
+          saveUserData(updatedUserData);
         } else if (!userData) {
-          console.log("Nicht eingeloggt, leite weiter...");
           navigate("/login");
         }
       } catch (error) {
