@@ -232,6 +232,7 @@ function Dashboard() {
           };
           saveUserData(updatedUserData);
         } else if (!userData) {
+          console.error("Nicht authentifiziert.");
           navigate("/login");
         }
       } catch (error) {
