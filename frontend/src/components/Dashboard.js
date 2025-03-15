@@ -299,6 +299,8 @@ function Dashboard() {
           saveUserData(authStatus);
 
           // Überprüfe die Rolle und den Status des Benutzers
+          console.log("Benutzer-ID:", authStatus.userId);
+          console.log("Benutzername:", authStatus.username);
           try {
             const roleResponse = await fetchData(
               `https://backendtickets.wonder-craft.de/check-role/${authStatus.userId}`
