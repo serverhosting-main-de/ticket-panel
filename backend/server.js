@@ -250,16 +250,8 @@ app.get("/api/tickets", async (req, res) => {
       closedAt: ticket.closedAt || "-",
     }));
 
-    // Überprüfe die Rolle des Benutzers
-    const hasRole = await client.guilds
-      .fetch(process.env.GUILD_ID)
-      .then((guild) => guild.members.fetch(req.session.userId))
-      .then((member) =>
-        member.roles.cache.some(
-          (role) => role.name === process.env.REQUIRED_ROLE
-        )
-      )
-      .catch(() => false);
+    // Verwende hasRole aus der Session
+    const hasRole = req.session.hasRole || false;
 
     // Filtere die Tickets basierend auf der Rolle
     const filteredTickets = hasRole

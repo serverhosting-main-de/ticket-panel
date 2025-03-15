@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import styled, { keyframes } from "styled-components";
@@ -126,97 +126,13 @@ const ActionButton = styled.button`
   }
 `;
 
-const Modal = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100% !important;
-  height: 100% !important;
-  background-color: rgba(0, 0, 0, 0.8) !important;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000 !important;
-`;
-
-const ModalContent = styled.div`
-  background-color: #2c3e50 !important;
-  padding: 20px !important;
-  border-radius: 15px !important;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5) !important;
-  width: 90% !important;
-  max-width: 1200px !important;
-  height: 90% !important;
-  max-height: 800px !important;
-  overflow-y: auto !important;
-  position: relative !important;
-  color: #ecf0f1 !important;
-`;
-
-const ChatContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 10px !important;
-  width: 100% !important;
-  height: 100% !important;
-  padding: 10px !important;
-`;
-
-const ChatMessage = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px !important;
-  padding: 10px !important;
-  background-color: rgba(255, 255, 255, 0.1) !important;
-  border-radius: 10px !important;
-`;
-
-const ChatAvatar = styled.img`
-  width: 40px !important;
-  height: 40px !important;
-  border-radius: 50% !important;
-`;
-
-const ChatAuthor = styled.strong`
-  color: #3498db !important;
-`;
-
-const ChatContent = styled.span`
-  color: #ecf0f1 !important;
-`;
-
-const CloseButton = styled.button`
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  background: none;
-  border: none;
-  font-size: 30px;
-  color: #ecf0f1;
-  cursor: pointer;
-  transition: transform 0.3s ease;
-
-  &:hover {
-    transform: scale(1.2);
-  }
-`;
-
-const rotate = keyframes`
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-`;
-
 const LoadingSpinner = styled.div`
   border: 4px solid rgba(255, 255, 255, 0.3);
   border-top: 4px solid #3498db;
   border-radius: 50%;
   width: 40px;
   height: 40px;
-  animation: ${rotate} 1s linear infinite;
+  animation: 10 1s linear infinite;
   margin: 50px auto;
 `;
 
@@ -246,7 +162,6 @@ function Dashboard() {
   const [tickets, setTickets] = useState([]);
   const [hasRole, setHasRole] = useState(null);
   const [status, setStatus] = useState("offline");
-  const [modalContent, setModalContent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [userData, setUserData] = useState(() => {
@@ -254,7 +169,7 @@ function Dashboard() {
     return storedUserData ? JSON.parse(storedUserData) : null;
   });
 
-  const isLoggedIn = useMemo(() => !!userData, [userData]);
+  const isLoggedIn = !!userData;
 
   const saveUserData = useCallback((data) => {
     localStorage.setItem("userData", JSON.stringify(data));
@@ -272,7 +187,6 @@ function Dashboard() {
     const urlUsername = searchParams.get("username");
     const urlUserId = searchParams.get("userId");
     const urlAvatar = searchParams.get("avatar");
-    console.log("Query-Parameter:", urlUsername, urlUserId, urlAvatar);
 
     if (urlUsername && urlUserId) {
       const newUserData = {
@@ -297,36 +211,20 @@ function Dashboard() {
         );
 
         if (authStatus.isLoggedIn) {
-          console.log("Benutzer ist angemeldet:", authStatus);
           saveUserData(authStatus);
 
-          // Überprüfe die Rolle und den Status des Benutzers
-          console.log("Benutzer-ID:", authStatus.userId);
-          console.log("Benutzername:", authStatus.username);
-          try {
-            const roleResponse = await fetchData(
-              `https://backendtickets.wonder-craft.de/check-role/${authStatus.userId}`
-            );
-            console.log("Rollenantwort:", roleResponse); // Debugging-Ausgabe
-            setHasRole(roleResponse.hasRole);
-            setStatus(roleResponse.status);
-            console.log("Benutzerrolle:", roleResponse.hasRole);
-            console.log("Benutzerstatus:", roleResponse.status);
-          } catch (error) {
-            console.error("Fehler beim Abrufen der Benutzerrolle:", error);
-            setError("Fehler beim Laden der Benutzerrolle.");
-            setHasRole(false);
-            setStatus("offline");
-          }
+          const roleResponse = await fetchData(
+            `https://backendtickets.wonder-craft.de/check-role/${authStatus.userId}`
+          );
+          setHasRole(roleResponse.hasRole);
+          setStatus(roleResponse.status);
         } else if (!userData) {
           navigate("/login");
-          return;
         }
       } catch (error) {
         console.error("Authentication check failed:", error);
         if (!userData) {
           navigate("/login");
-          return;
         }
       } finally {
         setLoading(false);
@@ -350,19 +248,11 @@ function Dashboard() {
           "https://backendtickets.wonder-craft.de/api/tickets",
           { withCredentials: true }
         );
-        console.log("API-Antwort:", response.data);
-
-        // Tickets aus der API-Antwort
-        const tickets = response.data;
-
-        // Filtere die Tickets basierend auf der Rolle und dem Ersteller
         const filteredTickets = hasRole
-          ? tickets
-          : tickets.filter((ticket) => ticket.creatorID === userData.userId);
-
-        console.log("Tickets:", filteredTickets);
-
-        // Setze die gefilterten Tickets im State
+          ? response.data
+          : response.data.filter(
+              (ticket) => ticket.creatorID === userData.userId
+            );
         setTickets(filteredTickets);
       } catch (error) {
         console.error("Fehler beim Abrufen der Tickets:", error);
@@ -390,81 +280,6 @@ function Dashboard() {
       newSocket.disconnect();
     };
   }, [hasRole, userData]);
-
-  // Chatverlauf öffnen
-  const openTicketChat = useCallback(
-    async (threadId) => {
-      const ticketById = tickets.find((t) => t.threadID === threadId);
-      if (!ticketById) {
-        setModalContent("Ticket nicht gefunden.");
-        return;
-      }
-
-      if (ticketById.status === true) {
-        try {
-          const chatHistory = await fetchData(
-            `https://backendtickets.wonder-craft.de/api/tickets/${threadId}/chat`
-          );
-
-          const formattedChatHistory = (
-            <ChatContainer>
-              {chatHistory.map((msg, index) => (
-                <ChatMessage key={index}>
-                  <ChatAvatar src={msg.avatar} alt="Avatar" />
-                  <ChatAuthor>{msg.author}</ChatAuthor>
-                  <ChatContent>{msg.content}</ChatContent>
-                </ChatMessage>
-              ))}
-            </ChatContainer>
-          );
-
-          setModalContent({
-            content: formattedChatHistory,
-            threadID: threadId,
-          });
-        } catch (error) {
-          setModalContent({
-            content: "Fehler beim Laden des Chatverlaufs.",
-            threadID: threadId,
-          });
-        }
-      } else {
-        // Ticket ist geschlossen: Lade die HTML-Datei
-        try {
-          const response = await fetch(
-            `https://backendtickets.wonder-craft.de/tickets/${threadId}.html`
-          );
-
-          if (!response.ok) {
-            throw new Error("HTML-Datei nicht gefunden.");
-          }
-
-          const htmlContent = await response.text();
-          setModalContent({
-            content: (
-              <div
-                dangerouslySetInnerHTML={{ __html: htmlContent }}
-                style={{ whiteSpace: "pre-wrap" }}
-              />
-            ),
-            threadID: threadId,
-          });
-        } catch (error) {
-          console.error("Fehler beim Laden der HTML-Datei:", error);
-          setModalContent({
-            content: "Fehler beim Laden der HTML-Datei.",
-            threadID: threadId,
-          });
-        }
-      }
-    },
-    [tickets]
-  );
-
-  // Modal schließen
-  const closeModal = useCallback(() => {
-    setModalContent(null);
-  }, []);
 
   // Logout
   const handleLogout = () => {
@@ -505,36 +320,16 @@ function Dashboard() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableCell>
-                  <strong>Kategorie</strong>
-                </TableCell>
-                <TableCell>
-                  <strong>Ticket ID</strong>
-                </TableCell>
-                <TableCell>
-                  <strong>Ersteller</strong>
-                </TableCell>
-                <TableCell>
-                  <strong>Ersteller ID</strong>
-                </TableCell>
-                <TableCell>
-                  <strong>Status</strong>
-                </TableCell>
-                <TableCell>
-                  <strong>Claimed by</strong>
-                </TableCell>
-                <TableCell>
-                  <strong>Erstellt am</strong>
-                </TableCell>
-                <TableCell>
-                  <strong>Geschlossen am</strong>
-                </TableCell>
-                <TableCell>
-                  <strong>Geschlossen von</strong>
-                </TableCell>
-                <TableCell>
-                  <strong>Transkript</strong>
-                </TableCell>
+                <TableCell>Kategorie</TableCell>
+                <TableCell>Ticket ID</TableCell>
+                <TableCell>Ersteller</TableCell>
+                <TableCell>Ersteller ID</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Claimed by</TableCell>
+                <TableCell>Erstellt am</TableCell>
+                <TableCell>Geschlossen am</TableCell>
+                <TableCell>Geschlossen von</TableCell>
+                <TableCell>Transkript</TableCell>
               </TableRow>
             </TableHeader>
             <tbody>
@@ -548,27 +343,20 @@ function Dashboard() {
                     <TableCell>
                       {ticket.status ? "Offen" : "Geschlossen"}
                     </TableCell>
-                    <TableCell>
-                      {ticket.claimedBy !== null ? ticket.claimedBy : "-"}
-                    </TableCell>
+                    <TableCell>{ticket.claimedBy || "-"}</TableCell>
                     <TableCell>
                       {ticket.date
                         ? new Date(ticket.date).toLocaleString()
                         : "-"}
                     </TableCell>
                     <TableCell>
-                      {ticket.closedAt &&
-                      !isNaN(new Date(ticket.closedAt).getTime())
+                      {ticket.closedAt
                         ? new Date(ticket.closedAt).toLocaleString()
                         : "-"}
                     </TableCell>
                     <TableCell>{ticket.closedBy || "-"}</TableCell>
                     <TableCell>
-                      <ActionButton
-                        onClick={() => openTicketChat(ticket.threadID)}
-                      >
-                        Anzeigen
-                      </ActionButton>
+                      <ActionButton>Anzeigen</ActionButton>
                     </TableCell>
                   </TableRow>
                 ))
@@ -581,14 +369,6 @@ function Dashboard() {
               )}
             </tbody>
           </Table>
-          {modalContent && (
-            <Modal>
-              <ModalContent>
-                <CloseButton onClick={closeModal}>×</CloseButton>
-                {modalContent.content}
-              </ModalContent>
-            </Modal>
-          )}
         </>
       ) : (
         navigate("/login")
