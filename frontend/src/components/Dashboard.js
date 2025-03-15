@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import styled, { keyframes } from "styled-components";
 import io from "socket.io-client";
@@ -154,21 +154,8 @@ const LogoutButton = styled(ActionButton)`
   }
 `;
 
-const fetchData = async (url, options = {}) => {
-  try {
-    const response = await axios.get(url, options);
-    console.log(`Daten von ${url} abgerufen:`, response.data);
-    return response.data;
-  } catch (error) {
-    console.error(`Fehler beim Abrufen von ${url}:`, error);
-    throw error;
-  }
-};
-
 function Dashboard() {
   const navigate = useNavigate();
-  const location = useLocation();
-
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -181,43 +168,28 @@ function Dashboard() {
   const hasRole = userData?.hasRole || false;
   const status = userData?.status || "offline";
 
-  const saveUserData = useCallback((data) => {
-    localStorage.setItem("userData", JSON.stringify(data));
-    setUserData(data);
-  }, []);
-
-  const clearUserData = useCallback(() => {
-    localStorage.removeItem("userData");
-    setUserData(null);
-  }, []);
-
-  // Verarbeite Query-Parameter und setze Benutzerdaten
-  useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const urlUsername = searchParams.get("username");
-    const urlUserId = searchParams.get("userId");
-    const urlAvatar = searchParams.get("avatar");
-
-    if (urlUsername && urlUserId) {
-      const newUserData = {
-        username: urlUsername,
-        userId: urlUserId,
-        avatar: urlAvatar
-          ? `https://cdn.discordapp.com/avatars/${urlUserId}/${urlAvatar}.png`
-          : "",
-      };
-      saveUserData(newUserData);
-      navigate("/dashboard", { replace: true });
+  // Funktion zum Abrufen von Daten mit JWT
+  const fetchData = async (url) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Fehler beim Abrufen der Daten:", error);
+      throw error;
     }
-  }, [location.search, saveUserData, navigate]);
+  };
 
   // Überprüfe den Authentifizierungsstatus
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
         const authStatus = await fetchData(
-          "https://backendtickets.wonder-craft.de/api/auth/status",
-          { withCredentials: true }
+          "https://backendtickets.wonder-craft.de/api/auth/status"
         );
 
         if (authStatus.isLoggedIn) {
@@ -225,45 +197,35 @@ function Dashboard() {
             `https://backendtickets.wonder-craft.de/check-role/${authStatus.userId}`
           );
 
-          console.log("Rollenantwort:", roleResponse);
-
-          // Speichere hasRole und Status in den userData
           const updatedUserData = {
             ...authStatus,
             hasRole: roleResponse.hasRole,
             status: roleResponse.status,
           };
-          saveUserData(updatedUserData);
-        } else if (!userData) {
-          console.error("Nicht authentifiziert.");
+          setUserData(updatedUserData);
+          localStorage.setItem("userData", JSON.stringify(updatedUserData));
+        } else {
           navigate("/login");
         }
       } catch (error) {
         console.error("Authentication check failed:", error);
-        if (!userData) {
-          navigate("/login");
-        }
+        navigate("/login");
       } finally {
         setLoading(false);
       }
     };
 
-    if (!userData) {
-      navigate("/login");
-    } else {
-      checkAuthStatus();
-    }
-  }, [navigate, userData, saveUserData]);
+    checkAuthStatus();
+  }, [navigate]);
 
   // Tickets abrufen
   useEffect(() => {
-    if (!userData || !userData.userId) return;
+    if (!userData) return;
 
     const fetchTickets = async () => {
       try {
-        const response = await axios.get(
-          "https://backendtickets.wonder-craft.de/api/tickets",
-          { withCredentials: true }
+        const response = await fetchData(
+          "https://backendtickets.wonder-craft.de/api/tickets"
         );
         const filteredTickets = hasRole
           ? response.data
@@ -280,27 +242,10 @@ function Dashboard() {
     fetchTickets();
   }, [hasRole, userData]);
 
-  // Socket.IO-Verbindung herstellen
-  useEffect(() => {
-    if (!userData || !userData.userId) return;
-
-    const newSocket = io("https://backendtickets.wonder-craft.de");
-
-    newSocket.on("ticketsUpdated", (updatedTickets) => {
-      const filteredTickets = hasRole
-        ? updatedTickets
-        : updatedTickets.filter((t) => t.creatorID === userData.userId);
-      setTickets(filteredTickets);
-    });
-
-    return () => {
-      newSocket.disconnect();
-    };
-  }, [hasRole, userData]);
-
   // Logout
   const handleLogout = () => {
-    clearUserData();
+    localStorage.removeItem("token");
+    localStorage.removeItem("userData");
     navigate("/login");
   };
 

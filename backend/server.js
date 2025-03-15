@@ -1,16 +1,25 @@
 require("dotenv").config();
 const express = require("express");
 const axios = require("axios");
-const session = require("express-session");
 const cors = require("cors");
 const { Client, GatewayIntentBits, Partials } = require("discord.js");
 const http = require("http");
 const { Server } = require("socket.io");
 const { MongoClient } = require("mongodb");
 const path = require("path");
+const jwt = require("jsonwebtoken");
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+// Middleware
+app.use(
+  cors({
+    origin: "https://tickets.wonder-craft.de", // Erlaube nur dein Frontend
+    credentials: true, // Cookies zulassen
+  })
+);
+app.use(express.json()); // JSON Body Parser
 
 // --- HTTP Server & Socket.IO ---
 const server = http.createServer(app);
@@ -62,44 +71,23 @@ client.once("ready", () => {
 
 client.login(process.env.DISCORD_TOKEN);
 
-// --- Middleware ---
+// --- JWT-Helper-Funktionen ---
+function generateToken(user) {
+  return jwt.sign(user, process.env.JWT_SECRET, { expiresIn: "1h" });
+}
 
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET, // Ein sicherer Schlüssel
-    resave: false,
-    saveUninitialized: true,
-    cookie: {
-      secure: true, // Nur über HTTPS
-      sameSite: "none", // Erforderlich für CORS
-      httpOnly: true, // Schutz vor XSS-Angriffen
-    },
-  })
-);
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1]; // Bearer <token>
 
-app.use(
-  cors({
-    origin: "https://tickets.wonder-craft.de", // Erlaube nur dein Frontend
-    credentials: true, // Cookies zulassen
-  })
-);
+  if (!token) return res.status(401).json({ error: "Nicht autorisiert." });
 
-app.use(express.json()); // JSON Body Parser
-
-// Setze das Working Directory auf /app
-process.chdir("/app");
-
-// Statische Dateien für geschlossene Tickets
-app.use("/tickets", express.static("tickets"));
-
-// Route für geschlossene Tickets
-app.get("/tickets/:threadID", (req, res) => {
-  const { threadID } = req.params;
-  if (!threadID || !/^[a-f0-9]{24}$/.test(threadID)) {
-    return res.status(400).send("Ungültige Thread-ID.");
-  }
-  res.sendFile(path.join(__dirname, "tickets", threadID + ".html"));
-});
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) return res.status(403).json({ error: "Ungültiges Token." });
+    req.user = user;
+    next();
+  });
+}
 
 // --- Routen ---
 
@@ -150,37 +138,32 @@ app.get("/callback", async (req, res) => {
 
     const discordUser = userResponse.data;
 
-    // 3. Benutzer in Session speichern
-    req.session.userId = discordUser.id;
-    req.session.username = discordUser.username;
-    req.session.avatar = `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`;
-
-    // 4. Weiterleiten mit Benutzerdaten als Query-Parameter
-    res.redirect(
-      `https://tickets.wonder-craft.de/dashboard?username=${discordUser.username}&userId=${discordUser.id}&avatar=${discordUser.avatar}`
-    );
-
-    req.session.hasRole = false; // Standardmäßig keine Rolle
-    //Check if user has the required role
+    // 3. Überprüfen, ob der Benutzer die erforderliche Rolle hat
+    let hasRole = false;
     try {
       const guild = await client.guilds.fetch(process.env.GUILD_ID);
-      if (!guild) {
-        console.error("Server (Guild) nicht gefunden.");
-        return;
+      if (guild) {
+        const member = await guild.members.fetch(discordUser.id);
+        if (member) {
+          hasRole = member.roles.cache.some(
+            (role) => role.name === process.env.REQUIRED_ROLE
+          );
+        }
       }
-
-      const member = await guild.members.fetch(discordUser.id);
-      if (!member) {
-        console.error("Benutzer nicht auf dem Server gefunden.");
-        return;
-      }
-
-      req.session.hasRole = member.roles.cache.some(
-        (role) => role.name === process.env.REQUIRED_ROLE
-      );
     } catch (error) {
       console.error("Fehler beim Überprüfen der Rolle:", error);
     }
+
+    // 4. JWT erstellen
+    const token = generateToken({
+      userId: discordUser.id,
+      username: discordUser.username,
+      avatar: `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`,
+      hasRole,
+    });
+
+    // 5. Weiterleiten mit JWT als Query-Parameter
+    res.redirect(`${process.env.FRONTEND_URL}/login?token=${token}`);
   } catch (error) {
     console.error("Fehler beim Discord OAuth2 Callback:", error);
     const errorMessage = error.response
@@ -193,22 +176,18 @@ app.get("/callback", async (req, res) => {
 });
 
 // Authentifizierungsstatus prüfen
-app.get("/api/auth/status", (req, res) => {
-  console.log("Session-Daten:", req.session); // Debugging-Ausgabe
-  if (req.session.userId) {
-    res.json({
-      isLoggedIn: true,
-      userId: req.session.userId,
-      username: req.session.username,
-      avatar: req.session.avatar,
-    });
-  } else {
-    res.status(200).json({ isLoggedIn: false });
-  }
+app.get("/api/auth/status", authenticateToken, (req, res) => {
+  res.json({
+    isLoggedIn: true,
+    userId: req.user.userId,
+    username: req.user.username,
+    avatar: req.user.avatar,
+    hasRole: req.user.hasRole,
+  });
 });
 
 // Rolle prüfen
-app.get("/check-role/:userId", async (req, res) => {
+app.get("/check-role/:userId", authenticateToken, async (req, res) => {
   const { userId } = req.params;
   if (!userId || !/^\d+$/.test(userId)) {
     return res.status(400).json({ error: "Ungültige Benutzer-ID." });
@@ -250,7 +229,7 @@ app.get("/check-role/:userId", async (req, res) => {
 });
 
 // Tickets abrufen
-app.get("/api/tickets", async (req, res) => {
+app.get("/api/tickets", authenticateToken, async (req, res) => {
   try {
     const tickets = await db
       .collection("TicketSystem")
@@ -271,14 +250,11 @@ app.get("/api/tickets", async (req, res) => {
       closedAt: ticket.closedAt || "-",
     }));
 
-    // Überprüfe die Rolle des Benutzers
-    const hasRole = req.session.hasRole || false;
-
     // Filtere die Tickets basierend auf der Rolle
-    const filteredTickets = hasRole
+    const filteredTickets = req.user.hasRole
       ? formattedTickets
       : formattedTickets.filter(
-          (ticket) => ticket.creatorID === req.session.userId
+          (ticket) => ticket.creatorID === req.user.userId
         );
 
     res.json(filteredTickets);

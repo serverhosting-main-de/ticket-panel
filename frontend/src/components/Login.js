@@ -1,5 +1,7 @@
 import React from "react";
 import styled from "styled-components";
+import { useNavigate, useEffect } from "react-router-dom";
+import axios from "axios";
 
 // Styled Components
 const LoginContainer = styled.div`
@@ -50,9 +52,60 @@ const LoginButton = styled.button`
 `;
 
 function Login() {
-  const handleLogin = () => {
-    window.location.href = "https://backendtickets.wonder-craft.de/login";
+  const navigate = useNavigate();
+
+  const handleLogin = async () => {
+    try {
+      // Öffne das Discord-OAuth2-Fenster
+      const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${
+        process.env.REACT_APP_DISCORD_CLIENT_ID
+      }&redirect_uri=${encodeURIComponent(
+        process.env.REACT_APP_DISCORD_REDIRECT_URI
+      )}&response_type=code&scope=identify+guilds`;
+      window.location.href = discordAuthUrl;
+    } catch (error) {
+      console.error("Fehler beim Weiterleiten zur Discord-Anmeldung:", error);
+    }
   };
+
+  // Überprüfe, ob ein Token in der URL vorhanden ist (nach der Weiterleitung vom Backend)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get("token");
+
+    if (token) {
+      // Speichere das JWT im Local Storage
+      localStorage.setItem("token", token);
+
+      // Hole Benutzerdaten vom Backend
+      const fetchUserData = async () => {
+        try {
+          const response = await axios.get(
+            "https://backendtickets.wonder-craft.de/api/auth/status",
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          if (response.data.isLoggedIn) {
+            // Speichere Benutzerdaten im Local Storage
+            localStorage.setItem("userData", JSON.stringify(response.data));
+
+            // Weiterleitung zum Dashboard
+            navigate("/dashboard");
+          } else {
+            console.error("Benutzer ist nicht authentifiziert.");
+          }
+        } catch (error) {
+          console.error("Fehler beim Abrufen der Benutzerdaten:", error);
+        }
+      };
+
+      fetchUserData();
+    }
+  }, [navigate]);
 
   return (
     <LoginContainer>
