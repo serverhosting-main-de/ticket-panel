@@ -82,6 +82,9 @@ function Login() {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
+    console.log("Login with Discord");
+    console.log("ENV", process.env.REACT_APP_DISCORD_CLIENT_ID);
+    console.log("ENV", process.env.REACT_APP_DISCORD_REDIRECT_URI);
     try {
       const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${
         process.env.REACT_APP_DISCORD_CLIENT_ID
