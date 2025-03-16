@@ -230,11 +230,17 @@ const formatDate = (dateString) => {
 
   // Wenn das Datum ungültig ist, versuche es mit dem deutschen Format
   if (isNaN(date.getTime())) {
-    // Versuche das Datum im Format "DD.MM.YYYY HH:mm:ss" zu parsen
-    const [datePart, timePart] = dateString.split(" ");
-    const [day, month, year] = datePart.split(".");
-    const [hour, minute, second] = timePart.split(":");
-    date = new Date(year, month - 1, day, hour, minute, second);
+    // Prüfe, ob der String das erwartete Format hat
+    if (typeof dateString === "string" && dateString.includes(" ")) {
+      const [datePart, timePart] = dateString.split(" ");
+      if (datePart && timePart) {
+        const [day, month, year] = datePart.split(".");
+        const [hour, minute, second] = timePart.split(":");
+        if (day && month && year && hour && minute && second) {
+          date = new Date(year, month - 1, day, hour, minute, second);
+        }
+      }
+    }
   }
 
   // Wenn das Datum immer noch ungültig ist, gib "-" zurück
