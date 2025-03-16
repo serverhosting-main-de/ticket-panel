@@ -20,7 +20,35 @@ const DashboardContainer = styled.div`
   background: linear-gradient(135deg, #1e1e2f, #2a2a40);
   color: #ecf0f1;
   min-height: 100vh;
+  height: 100vh;
   animation: ${fadeIn} 0.5s ease;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+`;
+
+const ContentContainer = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 10px;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+  }
 `;
 
 const UserInfo = styled.div`
@@ -311,61 +339,63 @@ function Dashboard() {
               : "Du hast Benutzer Rechte."}
           </p>
 
-          <h1>Tickets</h1>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableCell>Kategorie</TableCell>
-                <TableCell>Ticket ID</TableCell>
-                <TableCell>Ersteller</TableCell>
-                <TableCell>Ersteller ID</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Claimed by</TableCell>
-                <TableCell>Erstellt am</TableCell>
-                <TableCell>Geschlossen am</TableCell>
-                <TableCell>Geschlossen von</TableCell>
-                <TableCell>Aktion</TableCell>
-              </TableRow>
-            </TableHeader>
-            <tbody>
-              {tickets.length > 0 ? (
-                tickets.map((ticket) => (
-                  <TableRow key={ticket.threadID}>
-                    <TableCell>{ticket.category}</TableCell>
-                    <TableCell>{ticket.threadID}</TableCell>
-                    <TableCell>{ticket.creator}</TableCell>
-                    <TableCell>{ticket.creatorID}</TableCell>
-                    <TableCell>
-                      {ticket.status ? "Offen" : "Geschlossen"}
-                    </TableCell>
-                    <TableCell>{ticket.claimedBy || "-"}</TableCell>
-                    <TableCell>
-                      {ticket.date
-                        ? new Date(ticket.date).toLocaleString()
-                        : "-"}
-                    </TableCell>
-                    <TableCell>
-                      {ticket.closedAt
-                        ? new Date(ticket.closedAt).toLocaleString()
-                        : "-"}
-                    </TableCell>
-                    <TableCell>{ticket.closedBy || "-"}</TableCell>
-                    <TableCell>
-                      <ActionButton onClick={() => handleActionClick(ticket)}>
-                        {ticket.status ? "Chat öffnen" : "Details"}
-                      </ActionButton>
+          <ContentContainer>
+            <h1>Tickets</h1>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableCell>Kategorie</TableCell>
+                  <TableCell>Ticket ID</TableCell>
+                  <TableCell>Ersteller</TableCell>
+                  <TableCell>Ersteller ID</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Claimed by</TableCell>
+                  <TableCell>Erstellt am</TableCell>
+                  <TableCell>Geschlossen am</TableCell>
+                  <TableCell>Geschlossen von</TableCell>
+                  <TableCell>Aktion</TableCell>
+                </TableRow>
+              </TableHeader>
+              <tbody>
+                {tickets.length > 0 ? (
+                  tickets.map((ticket) => (
+                    <TableRow key={ticket.threadID}>
+                      <TableCell>{ticket.category}</TableCell>
+                      <TableCell>{ticket.threadID}</TableCell>
+                      <TableCell>{ticket.creator}</TableCell>
+                      <TableCell>{ticket.creatorID}</TableCell>
+                      <TableCell>
+                        {ticket.status ? "Offen" : "Geschlossen"}
+                      </TableCell>
+                      <TableCell>{ticket.claimedBy || "-"}</TableCell>
+                      <TableCell>
+                        {ticket.date
+                          ? new Date(ticket.date).toLocaleString()
+                          : "-"}
+                      </TableCell>
+                      <TableCell>
+                        {ticket.closedAt
+                          ? new Date(ticket.closedAt).toLocaleString()
+                          : "-"}
+                      </TableCell>
+                      <TableCell>{ticket.closedBy || "-"}</TableCell>
+                      <TableCell>
+                        <ActionButton onClick={() => handleActionClick(ticket)}>
+                          {ticket.status ? "Chat öffnen" : "Details"}
+                        </ActionButton>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan="10" style={{ textAlign: "center" }}>
+                      Keine Tickets gefunden.
                     </TableCell>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan="10" style={{ textAlign: "center" }}>
-                    Keine Tickets gefunden.
-                  </TableCell>
-                </TableRow>
-              )}
-            </tbody>
-          </Table>
+                )}
+              </tbody>
+            </Table>
+          </ContentContainer>
 
           {showChatModal && selectedTicketId && (
             <ChatModal ticketId={selectedTicketId} onClose={handleCloseModal} />

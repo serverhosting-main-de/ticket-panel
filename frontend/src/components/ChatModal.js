@@ -13,6 +13,7 @@ const ModalOverlay = styled.div`
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  overflow: hidden;
 `;
 
 const ModalContent = styled.div`
@@ -26,6 +27,8 @@ const ModalContent = styled.div`
   display: flex;
   flex-direction: column;
   box-shadow: 0 2px 10px 0 rgba(0, 0, 0, 0.2);
+  position: relative;
+  overflow: hidden;
 `;
 
 const ModalHeader = styled.div`
@@ -49,6 +52,12 @@ const ChatContainer = styled.div`
   overflow-y: auto;
   padding-right: 10px;
   margin-bottom: 20px;
+  position: absolute;
+  top: 80px;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  overflow-x: hidden;
 
   &::-webkit-scrollbar {
     width: 8px;
@@ -257,6 +266,14 @@ function ChatModal({ ticketId, onClose }) {
 
     fetchChatHistory();
   }, [ticketId]);
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, []);
 
   const renderEmbed = (embed, index) => {
     const embedColor = embed.color
