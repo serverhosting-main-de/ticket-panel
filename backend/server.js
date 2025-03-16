@@ -314,6 +314,7 @@ app.get("/api/tickets/:ticketId", authenticateToken, async (req, res) => {
 });
 
 // Chat-Nachrichten aus Discord abrufen
+// Chat-Nachrichten aus Discord abrufen
 app.get("/api/tickets/:ticketId/chat", authenticateToken, async (req, res) => {
   const { ticketId } = req.params;
 
@@ -343,11 +344,100 @@ app.get("/api/tickets/:ticketId/chat", authenticateToken, async (req, res) => {
       const messages = await channel.messages.fetch({ limit: 100 });
 
       // Nachrichten formatieren
-      const formattedMessages = messages.reverse().map((msg) => ({
-        sender: msg.author.username,
-        text: msg.content,
-        timestamp: msg.createdAt,
-      }));
+      const formattedMessages = messages.reverse().map((msg) => {
+        // Basis-Nachrichtenobjekt
+        const formattedMessage = {
+          sender: msg.author.username,
+          text: msg.content,
+          timestamp: msg.createdAt,
+        };
+
+        // Wenn die Nachricht Embeds enthält
+        if (msg.embeds && msg.embeds.length > 0) {
+          formattedMessage.embeds = msg.embeds.map((embed) => ({
+            title: embed.title || null,
+            description: embed.description || null,
+            url: embed.url || null,
+            color: embed.color || null,
+            timestamp: embed.timestamp || null,
+
+            // Author-Informationen
+            author: embed.author
+              ? {
+                  name: embed.author.name || null,
+                  url: embed.author.url || null,
+                  iconURL: embed.author.iconURL || null,
+                }
+              : null,
+
+            // Thumbnail
+            thumbnail: embed.thumbnail
+              ? {
+                  url: embed.thumbnail.url || null,
+                  height: embed.thumbnail.height || null,
+                  width: embed.thumbnail.width || null,
+                }
+              : null,
+
+            // Hauptbild
+            image: embed.image
+              ? {
+                  url: embed.image.url || null,
+                  height: embed.image.height || null,
+                  width: embed.image.width || null,
+                }
+              : null,
+
+            // Footer
+            footer: embed.footer
+              ? {
+                  text: embed.footer.text || null,
+                  iconURL: embed.footer.iconURL || null,
+                }
+              : null,
+
+            // Felder
+            fields: embed.fields
+              ? embed.fields.map((field) => ({
+                  name: field.name,
+                  value: field.value,
+                  inline: field.inline,
+                }))
+              : [],
+          }));
+        }
+
+        // Wenn die Nachricht Attachments enthält
+        if (msg.attachments.size > 0) {
+          formattedMessage.attachments = Array.from(
+            msg.attachments.values()
+          ).map((attachment) => ({
+            url: attachment.url,
+            name: attachment.name,
+            contentType: attachment.contentType,
+            size: attachment.size,
+            height: attachment.height,
+            width: attachment.width,
+          }));
+        }
+
+        // Wenn die Nachricht Komponenten (Buttons, etc.) enthält
+        if (msg.components && msg.components.length > 0) {
+          formattedMessage.components = msg.components;
+        }
+
+        // Wenn die Nachricht Reaktionen enthält
+        if (msg.reactions.cache.size > 0) {
+          formattedMessage.reactions = Array.from(
+            msg.reactions.cache.values()
+          ).map((reaction) => ({
+            emoji: reaction.emoji.name,
+            count: reaction.count,
+          }));
+        }
+
+        return formattedMessage;
+      });
 
       res.json(formattedMessages);
     } catch (discordError) {

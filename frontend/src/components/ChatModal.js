@@ -104,19 +104,80 @@ const MessageContent = styled.div`
   word-wrap: break-word;
 `;
 
-const Embed = styled.div`
+const EmbedContainer = styled.div`
   margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const Embed = styled.div`
   padding: 8px 16px;
   border-left: 4px solid ${(props) => props.color || "#4f545c"};
   background: #2f3136;
   border-radius: 4px;
+  max-width: 520px;
 
-  img {
-    max-width: 100%;
-    max-height: 300px;
-    border-radius: 4px;
+  .embed-title {
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .embed-description {
+    color: #dcddde;
+    font-size: 0.9375rem;
+    line-height: 1.3;
+    margin-bottom: 8px;
+    white-space: pre-wrap;
+  }
+
+  .embed-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+    margin: 8px 0;
+  }
+
+  .embed-field {
+    margin-bottom: 8px;
+
+    .field-name {
+      color: #fff;
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .field-value {
+      color: #dcddde;
+      font-size: 0.875rem;
+      line-height: 1.125rem;
+      white-space: pre-wrap;
+    }
+  }
+
+  .embed-footer {
+    color: #72767d;
+    font-size: 0.75rem;
     margin-top: 8px;
   }
+`;
+
+const EmbedImage = styled.img`
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 4px;
+  margin-top: 8px;
+`;
+
+const EmbedThumbnail = styled.img`
+  max-width: 80px;
+  max-height: 80px;
+  border-radius: 4px;
+  float: right;
+  margin-left: 16px;
 `;
 
 const CloseButton = styled.button`
@@ -153,16 +214,6 @@ function formatTimestamp(timestamp) {
   });
 }
 
-// Hilfsfunktion zum Parsen von Discord-Embeds
-function parseEmbed(content) {
-  try {
-    if (typeof content === "string" && content.startsWith("{")) {
-      return JSON.parse(content);
-    }
-  } catch (e) {}
-  return null;
-}
-
 function ChatModal({ ticketId, onClose }) {
   const [chatHistory, setChatHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -191,6 +242,47 @@ function ChatModal({ ticketId, onClose }) {
 
     fetchChatHistory();
   }, [ticketId]);
+
+  const renderEmbed = (embed, index) => {
+    const embedColor = embed.color
+      ? `#${embed.color.toString(16).padStart(6, "0")}`
+      : "#4f545c";
+
+    return (
+      <Embed key={index} color={embedColor}>
+        {embed.author && (
+          <div className="embed-author">{embed.author.name}</div>
+        )}
+
+        {embed.title && <div className="embed-title">{embed.title}</div>}
+
+        {embed.thumbnail && (
+          <EmbedThumbnail src={embed.thumbnail.url} alt="Thumbnail" />
+        )}
+
+        {embed.description && (
+          <div className="embed-description">{embed.description}</div>
+        )}
+
+        {embed.fields && embed.fields.length > 0 && (
+          <div className="embed-fields">
+            {embed.fields.map((field, fieldIndex) => (
+              <div key={fieldIndex} className="embed-field">
+                <div className="field-name">{field.name}</div>
+                <div className="field-value">{field.value}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {embed.image && <EmbedImage src={embed.image.url} alt="Embed Image" />}
+
+        {embed.footer && (
+          <div className="embed-footer">{embed.footer.text}</div>
+        )}
+      </Embed>
+    );
+  };
 
   if (loading) {
     return (
@@ -227,37 +319,26 @@ function ChatModal({ ticketId, onClose }) {
           </CloseButton>
         </ModalHeader>
         <ChatContainer>
-          {chatHistory.map((message, index) => {
-            const embed = parseEmbed(message.text);
-
-            return (
-              <MessageGroup key={index}>
-                <MessageHeader>
-                  <MessageSender>{message.sender}</MessageSender>
-                  <MessageTimestamp>
-                    {formatTimestamp(message.timestamp)}
-                  </MessageTimestamp>
-                </MessageHeader>
-                <MessageContent>
-                  {!embed && message.text}
-                  {embed && (
-                    <Embed color={embed.color}>
-                      {embed.title && <h4>{embed.title}</h4>}
-                      {embed.description && <p>{embed.description}</p>}
-                      {embed.image && <img src={embed.image.url} alt="Embed" />}
-                      {embed.fields &&
-                        embed.fields.map((field, i) => (
-                          <div key={i}>
-                            <strong>{field.name}</strong>
-                            <p>{field.value}</p>
-                          </div>
-                        ))}
-                    </Embed>
-                  )}
-                </MessageContent>
-              </MessageGroup>
-            );
-          })}
+          {chatHistory.map((message, index) => (
+            <MessageGroup key={index}>
+              <MessageHeader>
+                <MessageSender>{message.sender}</MessageSender>
+                <MessageTimestamp>
+                  {formatTimestamp(message.timestamp)}
+                </MessageTimestamp>
+              </MessageHeader>
+              <MessageContent>
+                {message.text && <div>{message.text}</div>}
+                {message.embeds && message.embeds.length > 0 && (
+                  <EmbedContainer>
+                    {message.embeds.map((embed, embedIndex) =>
+                      renderEmbed(embed, embedIndex)
+                    )}
+                  </EmbedContainer>
+                )}
+              </MessageContent>
+            </MessageGroup>
+          ))}
         </ChatContainer>
       </ModalContent>
     </ModalOverlay>
