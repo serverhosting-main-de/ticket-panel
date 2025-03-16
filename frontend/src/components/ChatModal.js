@@ -348,7 +348,12 @@ function ChatModal({ ticketId, onClose }) {
           <div className="embed-fields">
             {embed.fields.map((field, fieldIndex) => (
               <div key={fieldIndex} className="embed-field">
-                <div className="field-name">{field.name}</div>
+                <div
+                  className="field-name"
+                  dangerouslySetInnerHTML={{
+                    __html: formatMessage(field.name),
+                  }}
+                />
                 <div
                   className="field-value"
                   dangerouslySetInnerHTML={{
