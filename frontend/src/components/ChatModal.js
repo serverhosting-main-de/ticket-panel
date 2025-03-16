@@ -263,6 +263,12 @@ const formatMessage = (text) => {
   // Ersetze Channel-Mentions
   text = text.replace(/<#(\d+)>/g, "#channel");
 
+  // Ersetze **Text** mit <strong>Text</strong>
+  text = text.replace(
+    /\*\*(.*?)\*\*/g,
+    (match, p1) => `<strong>${p1}</strong>`
+  );
+
   return text;
 };
 
@@ -401,7 +407,13 @@ function ChatModal({ ticketId, onClose }) {
                   </MessageTimestamp>
                 </MessageHeader>
                 <MessageContent>
-                  {message.text && <div>{formatMessage(message.text)}</div>}
+                  {message.text && (
+                    <div
+                      dangerouslySetInnerHTML={{
+                        __html: formatMessage(message.text),
+                      }}
+                    ></div>
+                  )}
                   {message.embeds && message.embeds.length > 0 && (
                     <EmbedContainer>
                       {message.embeds.map((embed, embedIndex) =>

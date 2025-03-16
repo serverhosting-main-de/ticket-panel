@@ -319,7 +319,7 @@ function Dashboard() {
       setSelectedTicketId(ticket.threadID);
       setShowChatModal(true);
     } else {
-      navigate(`/ticket/${ticket.threadID}`);
+      navigate(`/tickets/${ticket.threadID}`);
     }
   };
 
@@ -406,7 +406,7 @@ function Dashboard() {
                       <TableCell>{ticket.closedBy || "-"}</TableCell>
                       <TableCell>
                         <ActionButton onClick={() => handleActionClick(ticket)}>
-                          {ticket.status ? "Chat öffnen" : "Details"}
+                          {ticket.status ? "Chat öffnen" : "Verlauf anzeigen"}
                         </ActionButton>
                       </TableCell>
                     </TableRow>
