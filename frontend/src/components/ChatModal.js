@@ -272,6 +272,12 @@ const formatMessage = (text) => {
   // Ersetze `Text` mit <code>Text</code>
   text = text.replace(/`(.*?)`/g, (match, p1) => `<code>${p1}</code>`);
 
+  // Ersetze bereits vorhandene HTML-Tags, damit sie nicht doppelt formatiert werden
+  text = text.replace(/&lt;strong&gt;/g, "<strong>");
+  text = text.replace(/&lt;\/strong&gt;/g, "</strong>");
+  text = text.replace(/&lt;code&gt;/g, "<code>");
+  text = text.replace(/&lt;\/code&gt;/g, "</code>");
+
   return text;
 };
 
