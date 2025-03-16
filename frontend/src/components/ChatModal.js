@@ -336,9 +336,12 @@ function ChatModal({ ticketId, onClose }) {
         )}
 
         {embed.description && (
-          <div className="embed-description">
-            {formatMessage(embed.description)}
-          </div>
+          <div
+            className="embed-description"
+            dangerouslySetInnerHTML={{
+              __html: formatMessage(embed.description),
+            }}
+          />
         )}
 
         {embed.fields && embed.fields.length > 0 && (
@@ -346,7 +349,12 @@ function ChatModal({ ticketId, onClose }) {
             {embed.fields.map((field, fieldIndex) => (
               <div key={fieldIndex} className="embed-field">
                 <div className="field-name">{field.name}</div>
-                <div className="field-value">{formatMessage(field.value)}</div>
+                <div
+                  className="field-value"
+                  dangerouslySetInnerHTML={{
+                    __html: formatMessage(field.value),
+                  }}
+                />
               </div>
             ))}
           </div>

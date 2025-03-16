@@ -222,6 +222,26 @@ const formatMessage = (text, mentions) => {
   return text;
 };
 
+// Füge diese Hilfsfunktion hinzu
+const formatDate = (dateString) => {
+  if (!dateString) return "-";
+
+  const date = new Date(dateString);
+
+  // Überprüfe ob das Datum gültig ist
+  if (isNaN(date.getTime())) return "-";
+
+  return date.toLocaleString("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+};
+
 function Dashboard() {
   const navigate = useNavigate();
   const [tickets, setTickets] = useState([]);
@@ -393,16 +413,8 @@ function Dashboard() {
                         {ticket.status ? "Offen" : "Geschlossen"}
                       </TableCell>
                       <TableCell>{ticket.claimedBy || "-"}</TableCell>
-                      <TableCell>
-                        {ticket.date
-                          ? new Date(ticket.date).toLocaleString()
-                          : "-"}
-                      </TableCell>
-                      <TableCell>
-                        {ticket.closedAt
-                          ? new Date(ticket.closedAt).toLocaleString()
-                          : "-"}
-                      </TableCell>
+                      <TableCell>{formatDate(ticket.date)}</TableCell>
+                      <TableCell>{formatDate(ticket.closedAt)}</TableCell>
                       <TableCell>{ticket.closedBy || "-"}</TableCell>
                       <TableCell>
                         <ActionButton onClick={() => handleActionClick(ticket)}>

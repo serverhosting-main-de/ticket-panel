@@ -9,71 +9,66 @@ const LoginContainer = styled.div`
   justify-content: center;
   align-items: center;
   height: 100vh;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: #36393f;
   color: #ffffff;
-  font-family: "Poppins", sans-serif;
+  font-family: "Segoe UI", "Helvetica Neue", sans-serif;
 `;
 
 const LoginBox = styled.div`
-  background-color: rgba(255, 255, 255, 0.1);
-  padding: 60px;
-  border-radius: 20px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(10px);
+  background-color: #2f3136;
+  padding: 40px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px 0 rgba(0, 0, 0, 0.2);
   text-align: center;
   max-width: 400px;
   width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 `;
 
 const LoginTitle = styled.h1`
-  font-size: 32px;
+  font-size: 24px;
   margin-bottom: 30px;
   font-weight: 600;
-  letter-spacing: -0.5px;
   color: #ffffff;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 `;
 
 const LoginButton = styled.button`
-  background: linear-gradient(135deg, #7289da, #5b6eae);
+  background-color: #5865f2;
   color: white;
-  padding: 15px 30px;
+  padding: 12px 24px;
   border: none;
-  border-radius: 12px;
+  border-radius: 4px;
   cursor: pointer;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 500;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: background-color 0.2s ease;
+  width: 200px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
 
   &:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
-    background: linear-gradient(135deg, #677bc4, #4a5a9e);
+    background-color: #4752c4;
   }
 
   &:active {
-    transform: translateY(0);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    background-color: #3c45a5;
   }
 `;
 
 const LoadingText = styled.p`
   font-size: 16px;
-  color: rgba(255, 255, 255, 0.8);
+  color: #b9bbbe;
   margin-top: 20px;
 `;
 
 const ErrorText = styled.p`
-  font-size: 16px;
-  color: #ff6b6b;
+  font-size: 14px;
+  color: #ed4245;
   margin-bottom: 20px;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 `;
 
 function Login() {
