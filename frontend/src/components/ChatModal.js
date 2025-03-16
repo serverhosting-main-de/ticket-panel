@@ -269,6 +269,9 @@ const formatMessage = (text) => {
     (match, p1) => `<strong>${p1}</strong>`
   );
 
+  // Ersetze `Text` mit <code>Text</code>
+  text = text.replace(/`(.*?)`/g, (match, p1) => `<code>${p1}</code>`);
+
   return text;
 };
 
