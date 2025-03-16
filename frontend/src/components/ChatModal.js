@@ -8,7 +8,7 @@ const ModalOverlay = styled.div`
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(0, 0, 0, 0.75);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -17,18 +17,19 @@ const ModalOverlay = styled.div`
 `;
 
 const ModalContent = styled.div`
-  background: #36393f;
+  background: #2b2d31;
   padding: 20px;
-  border-radius: 8px;
+  border-radius: 12px;
   width: 90%;
   max-width: 800px;
   height: 80vh;
-  color: #dcddde;
+  color: #e3e5e8;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 2px 10px 0 rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   position: relative;
   overflow: hidden;
+  border: 1px solid #1e2022;
 `;
 
 const ModalHeader = styled.div`
@@ -36,12 +37,12 @@ const ModalHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   padding-bottom: 20px;
-  border-bottom: 1px solid #202225;
+  border-bottom: 1px solid #1e2022;
   margin-bottom: 20px;
 
   h2 {
     color: #fff;
-    font-size: 1.3rem;
+    font-size: 1.4rem;
     font-weight: 600;
     margin: 0;
   }
@@ -64,29 +65,30 @@ const ChatContainer = styled.div`
   }
 
   &::-webkit-scrollbar-track {
-    background: #2f3136;
+    background: #1e2022;
     border-radius: 4px;
   }
 
   &::-webkit-scrollbar-thumb {
-    background: #202225;
+    background: #2b2d31;
     border-radius: 4px;
 
     &:hover {
-      background: #18191c;
+      background: #36393f;
     }
   }
 `;
 
 const MessageGroup = styled.div`
   margin-bottom: 1rem;
-  padding: 0.5rem;
-  border-radius: 4px;
+  padding: 0.8rem;
+  border-radius: 8px;
   display: flex;
   gap: 16px;
+  transition: background-color 0.2s ease;
 
   &:hover {
-    background: #32353b;
+    background: #36393f;
   }
 `;
 
@@ -99,6 +101,7 @@ const Avatar = styled.img`
   height: 40px;
   border-radius: 50%;
   object-fit: cover;
+  border: 2px solid #5865f2;
 `;
 
 const MessageHeader = styled.div`
@@ -109,20 +112,20 @@ const MessageHeader = styled.div`
 
 const MessageSender = styled.span`
   color: #fff;
-  font-weight: 500;
+  font-weight: 600;
   margin-right: 8px;
 `;
 
 const MessageTimestamp = styled.span`
-  color: #72767d;
+  color: #a3a6aa;
   font-size: 0.75rem;
 `;
 
 const MessageContent = styled.div`
   flex-grow: 1;
-  color: #dcddde;
+  color: #e3e5e8;
   font-size: 1rem;
-  line-height: 1.375rem;
+  line-height: 1.5;
   white-space: pre-wrap;
   word-wrap: break-word;
   min-width: 0;
@@ -136,11 +139,12 @@ const EmbedContainer = styled.div`
 `;
 
 const Embed = styled.div`
-  padding: 8px 16px;
-  border-left: 4px solid ${(props) => props.color || "#4f545c"};
-  background: #2f3136;
-  border-radius: 4px;
+  padding: 12px 16px;
+  border-left: 4px solid ${(props) => props.color || "#5865f2"};
+  background: #36393f;
+  border-radius: 8px;
   max-width: 520px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
   .embed-title {
     color: #fff;
@@ -150,9 +154,9 @@ const Embed = styled.div`
   }
 
   .embed-description {
-    color: #dcddde;
+    color: #e3e5e8;
     font-size: 0.9375rem;
-    line-height: 1.3;
+    line-height: 1.4;
     margin-bottom: 8px;
     white-space: pre-wrap;
   }
@@ -175,15 +179,15 @@ const Embed = styled.div`
     }
 
     .field-value {
-      color: #dcddde;
+      color: #e3e5e8;
       font-size: 0.875rem;
-      line-height: 1.125rem;
+      line-height: 1.4;
       white-space: pre-wrap;
     }
   }
 
   .embed-footer {
-    color: #72767d;
+    color: #a3a6aa;
     font-size: 0.75rem;
     margin-top: 8px;
   }
@@ -192,21 +196,23 @@ const Embed = styled.div`
 const EmbedImage = styled.img`
   max-width: 100%;
   max-height: 300px;
-  border-radius: 4px;
+  border-radius: 8px;
   margin-top: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 `;
 
 const EmbedThumbnail = styled.img`
   max-width: 80px;
   max-height: 80px;
-  border-radius: 4px;
+  border-radius: 8px;
   float: right;
   margin-left: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 `;
 
 const CloseButton = styled.button`
   background: transparent;
-  color: #dcddde;
+  color: #a3a6aa;
   border: none;
   padding: 8px;
   cursor: pointer;
@@ -214,10 +220,10 @@ const CloseButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s;
+  transition: all 0.2s ease;
 
   &:hover {
-    background: #2f3136;
+    background: #36393f;
     color: #fff;
   }
 
@@ -225,6 +231,95 @@ const CloseButton = styled.button`
     width: 24px;
     height: 24px;
   }
+`;
+
+const ReactionContainer = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+`;
+
+const Reaction = styled.div`
+  background: #36393f;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.875rem;
+  color: #e3e5e8;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background: #40444b;
+  }
+`;
+
+const AttachmentContainer = styled.div`
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const Attachment = styled.div`
+  background: #36393f;
+  border-radius: 8px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 520px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+`;
+
+const AttachmentIcon = styled.div`
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #2b2d31;
+  border-radius: 4px;
+`;
+
+const AttachmentInfo = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const AttachmentName = styled.div`
+  color: #00b0f4;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  a {
+    color: #00b0f4;
+    text-decoration: none;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: #0095ff;
+      text-decoration: underline;
+    }
+  }
+`;
+
+const AttachmentSize = styled.div`
+  color: #a3a6aa;
+  font-size: 0.75rem;
+`;
+
+const AttachmentImage = styled.img`
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 8px;
+  margin-top: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 `;
 
 function formatTimestamp(timestamp) {
@@ -321,7 +416,7 @@ function ChatModal({ ticketId, onClose }) {
   const renderEmbed = (embed, index) => {
     const embedColor = embed.color
       ? `#${embed.color.toString(16).padStart(6, "0")}`
-      : "#4f545c";
+      : "#5865f2";
 
     return (
       <Embed key={index} color={embedColor}>
@@ -417,7 +512,7 @@ function ChatModal({ ticketId, onClose }) {
                   alt={message.sender}
                   onError={(e) => {
                     e.target.src =
-                      "https://cdn.discordapp.com/embed/avatars/0.png"; // Discord Default Avatar
+                      "https://cdn.discordapp.com/embed/avatars/0.png";
                   }}
                 />
               </AvatarContainer>
@@ -434,7 +529,39 @@ function ChatModal({ ticketId, onClose }) {
                       dangerouslySetInnerHTML={{
                         __html: formatMessage(message.text),
                       }}
-                    ></div>
+                    />
+                  )}
+                  {message.attachments && message.attachments.length > 0 && (
+                    <AttachmentContainer>
+                      {message.attachments.map((attachment, index) => (
+                        <div key={index}>
+                          {attachment.contentType.startsWith("image/") ? (
+                            <AttachmentImage
+                              src={attachment.url}
+                              alt={attachment.name}
+                            />
+                          ) : (
+                            <Attachment>
+                              <AttachmentIcon>📎</AttachmentIcon>
+                              <AttachmentInfo>
+                                <AttachmentName>
+                                  <a
+                                    href={attachment.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    {attachment.name}
+                                  </a>
+                                </AttachmentName>
+                                <AttachmentSize>
+                                  {(attachment.size / 1024).toFixed(2)} KB
+                                </AttachmentSize>
+                              </AttachmentInfo>
+                            </Attachment>
+                          )}
+                        </div>
+                      ))}
+                    </AttachmentContainer>
                   )}
                   {message.embeds && message.embeds.length > 0 && (
                     <EmbedContainer>
@@ -442,6 +569,15 @@ function ChatModal({ ticketId, onClose }) {
                         renderEmbed(embed, embedIndex)
                       )}
                     </EmbedContainer>
+                  )}
+                  {message.reactions && message.reactions.length > 0 && (
+                    <ReactionContainer>
+                      {message.reactions.map((reaction, index) => (
+                        <Reaction key={index}>
+                          {reaction.emoji} {reaction.count}
+                        </Reaction>
+                      ))}
+                    </ReactionContainer>
                   )}
                 </MessageContent>
               </div>
