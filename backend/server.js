@@ -350,6 +350,7 @@ app.get("/api/tickets/:ticketId/chat", authenticateToken, async (req, res) => {
           sender: msg.author.username,
           text: msg.content,
           timestamp: msg.createdAt,
+          avatarURL: msg.author.displayAvatarURL({ format: "png", size: 32 }),
         };
 
         // Wenn die Nachricht Embeds enthält

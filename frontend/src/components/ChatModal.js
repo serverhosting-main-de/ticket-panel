@@ -73,10 +73,23 @@ const MessageGroup = styled.div`
   margin-bottom: 1rem;
   padding: 0.5rem;
   border-radius: 4px;
+  display: flex;
+  gap: 16px;
 
   &:hover {
     background: #32353b;
   }
+`;
+
+const AvatarContainer = styled.div`
+  flex-shrink: 0;
+`;
+
+const Avatar = styled.img`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
 `;
 
 const MessageHeader = styled.div`
@@ -97,11 +110,13 @@ const MessageTimestamp = styled.span`
 `;
 
 const MessageContent = styled.div`
+  flex-grow: 1;
   color: #dcddde;
   font-size: 1rem;
   line-height: 1.375rem;
   white-space: pre-wrap;
   word-wrap: break-word;
+  min-width: 0;
 `;
 
 const EmbedContainer = styled.div`
@@ -321,22 +336,34 @@ function ChatModal({ ticketId, onClose }) {
         <ChatContainer>
           {chatHistory.map((message, index) => (
             <MessageGroup key={index}>
-              <MessageHeader>
-                <MessageSender>{message.sender}</MessageSender>
-                <MessageTimestamp>
-                  {formatTimestamp(message.timestamp)}
-                </MessageTimestamp>
-              </MessageHeader>
-              <MessageContent>
-                {message.text && <div>{message.text}</div>}
-                {message.embeds && message.embeds.length > 0 && (
-                  <EmbedContainer>
-                    {message.embeds.map((embed, embedIndex) =>
-                      renderEmbed(embed, embedIndex)
-                    )}
-                  </EmbedContainer>
-                )}
-              </MessageContent>
+              <AvatarContainer>
+                <Avatar
+                  src={message.avatarURL}
+                  alt={message.sender}
+                  onError={(e) => {
+                    e.target.src =
+                      "https://cdn.discordapp.com/embed/avatars/0.png"; // Discord Default Avatar
+                  }}
+                />
+              </AvatarContainer>
+              <div>
+                <MessageHeader>
+                  <MessageSender>{message.sender}</MessageSender>
+                  <MessageTimestamp>
+                    {formatTimestamp(message.timestamp)}
+                  </MessageTimestamp>
+                </MessageHeader>
+                <MessageContent>
+                  {message.text && <div>{message.text}</div>}
+                  {message.embeds && message.embeds.length > 0 && (
+                    <EmbedContainer>
+                      {message.embeds.map((embed, embedIndex) =>
+                        renderEmbed(embed, embedIndex)
+                      )}
+                    </EmbedContainer>
+                  )}
+                </MessageContent>
+              </div>
             </MessageGroup>
           ))}
         </ChatContainer>
