@@ -63,6 +63,22 @@ const StatusIndicator = styled.div`
   bottom: 15px;
   left: 60px;
   border: 2px solid #34495e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  ${({ status }) =>
+    status === "dnd" &&
+    `
+    &::before {
+      content: "";
+      position: absolute;
+      width: 60%;
+      height: 2px;
+      background-color: #34495e;
+      border-radius: 2px;
+    }
+  `}
 `;
 
 const Table = styled.table`

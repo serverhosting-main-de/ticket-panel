@@ -257,7 +257,7 @@ app.get("/api/tickets", authenticateToken, async (req, res) => {
           (ticket) => ticket.creatorID === req.user.userId
         );
 
-    res.json(filteredTickets);
+    res.json({ data: filteredTickets });
     io.emit("ticketsUpdated", filteredTickets); // Sende aktualisierte Tickets an alle Clients
   } catch (error) {
     console.error("Fehler beim Abrufen der Tickets:", error);
