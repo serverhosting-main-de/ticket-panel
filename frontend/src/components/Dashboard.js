@@ -227,8 +227,8 @@ function Dashboard() {
           "https://backendtickets.wonder-craft.de/api/tickets"
         );
         const filteredTickets = hasRole
-          ? response.data
-          : response.data.filter(
+          ? response.data || []
+          : (response.data || []).filter(
               (ticket) => ticket.creatorID === userData.userId
             );
         setTickets(filteredTickets);
