@@ -262,7 +262,7 @@ function Dashboard() {
 
   return (
     <DashboardContainer>
-      {isLoggedIn ? (
+      {isLoggedIn && userData.username != null ? (
         <>
           <UserInfo>
             {userData?.avatar && <Avatar src={userData.avatar} alt="Avatar" />}
