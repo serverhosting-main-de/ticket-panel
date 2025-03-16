@@ -265,6 +265,95 @@ app.get("/api/tickets", authenticateToken, async (req, res) => {
   }
 });
 
+app.get("/api/tickets/:ticketId/chat", authenticateToken, async (req, res) => {
+  const { ticketId } = req.params;
+
+  try {
+    // Überprüfe, ob der Thread existiert
+    const ticket = await db
+      .collection("TicketSystem")
+      .findOne({ threadID: ticketId });
+    if (!ticket) {
+      return res.status(404).json({ error: "Ticket nicht gefunden." });
+    }
+
+    // Überprüfe Zugriffsberechtigung
+    if (!req.user.hasRole && ticket.creatorID !== req.user.userId) {
+      return res
+        .status(403)
+        .json({ error: "Keine Berechtigung für dieses Ticket." });
+    }
+
+    // Hole die Chat-Nachrichten aus der Datenbank
+    const messages = await db
+      .collection("TicketChats")
+      .find({ ticketId })
+      .sort({ timestamp: 1 })
+      .toArray();
+
+    const formattedMessages = messages.map((msg) => ({
+      sender: msg.sender,
+      text: msg.content,
+      timestamp: msg.timestamp,
+    }));
+
+    res.json(formattedMessages);
+  } catch (error) {
+    console.error("Fehler beim Abrufen des Chat-Verlaufs:", error);
+    res.status(500).json({ error: "Fehler beim Laden des Chat-Verlaufs." });
+  }
+});
+
+// Neue Chat-Nachricht hinzufügen
+app.post("/api/tickets/:ticketId/chat", authenticateToken, async (req, res) => {
+  const { ticketId } = req.params;
+  const { text } = req.body;
+
+  try {
+    // Überprüfe, ob der Thread existiert
+    const ticket = await db
+      .collection("TicketSystem")
+      .findOne({ threadID: ticketId });
+    if (!ticket) {
+      return res.status(404).json({ error: "Ticket nicht gefunden." });
+    }
+
+    // Überprüfe Zugriffsberechtigung
+    if (!req.user.hasRole && ticket.creatorID !== req.user.userId) {
+      return res
+        .status(403)
+        .json({ error: "Keine Berechtigung für dieses Ticket." });
+    }
+
+    const newMessage = {
+      ticketId,
+      sender: req.user.username,
+      content: text,
+      timestamp: new Date(),
+      userId: req.user.userId,
+    };
+
+    // Speichere die Nachricht in der Datenbank
+    await db.collection("TicketChats").insertOne(newMessage);
+
+    // Benachrichtige alle verbundenen Clients über die neue Nachricht
+    io.emit(`chat-${ticketId}`, {
+      sender: newMessage.sender,
+      text: newMessage.content,
+      timestamp: newMessage.timestamp,
+    });
+
+    res.status(201).json({
+      sender: newMessage.sender,
+      text: newMessage.content,
+      timestamp: newMessage.timestamp,
+    });
+  } catch (error) {
+    console.error("Fehler beim Speichern der Chat-Nachricht:", error);
+    res.status(500).json({ error: "Fehler beim Speichern der Nachricht." });
+  }
+});
+
 // --- WebSocket-Verbindung ---
 io.on("connection", (socket) => {
   console.log("Client verbunden");

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import styled, { keyframes } from "styled-components";
+import ChatModal from "./ChatModal";
 
 // Styled Components (unverändert)
 const fadeIn = keyframes`
@@ -168,12 +169,13 @@ const LogoutButton = styled(ActionButton)`
     background-color: #c0392b;
   }
 `;
-
 function Dashboard() {
   const navigate = useNavigate();
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedTicketId, setSelectedTicketId] = useState(null);
+  const [showChatModal, setShowChatModal] = useState(false);
   const [userData, setUserData] = useState(() => {
     const storedUserData = localStorage.getItem("userData");
     return storedUserData ? JSON.parse(storedUserData) : null;
@@ -242,7 +244,6 @@ function Dashboard() {
         const response = await fetchData(
           "https://backendtickets.wonder-craft.de/api/tickets"
         );
-        // Hier wird auf das `data`-Feld der API-Antwort zugegriffen
         const ticketsData = response.data || [];
         const filteredTickets = hasRole
           ? ticketsData
@@ -258,6 +259,21 @@ function Dashboard() {
 
     fetchTickets();
   }, [hasRole, userData]);
+
+  // Neue Funktionen für Chat/Details Handling
+  const handleActionClick = (ticket) => {
+    if (ticket.status) {
+      setSelectedTicketId(ticket.threadID);
+      setShowChatModal(true);
+    } else {
+      navigate(`/ticket/${ticket.threadID}`);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowChatModal(false);
+    setSelectedTicketId(null);
+  };
 
   // Logout
   const handleLogout = () => {
@@ -308,7 +324,7 @@ function Dashboard() {
                 <TableCell>Erstellt am</TableCell>
                 <TableCell>Geschlossen am</TableCell>
                 <TableCell>Geschlossen von</TableCell>
-                <TableCell>Transkript</TableCell>
+                <TableCell>Aktion</TableCell>
               </TableRow>
             </TableHeader>
             <tbody>
@@ -335,7 +351,9 @@ function Dashboard() {
                     </TableCell>
                     <TableCell>{ticket.closedBy || "-"}</TableCell>
                     <TableCell>
-                      <ActionButton>Anzeigen</ActionButton>
+                      <ActionButton onClick={() => handleActionClick(ticket)}>
+                        {ticket.status ? "Chat öffnen" : "Details"}
+                      </ActionButton>
                     </TableCell>
                   </TableRow>
                 ))
@@ -348,6 +366,10 @@ function Dashboard() {
               )}
             </tbody>
           </Table>
+
+          {showChatModal && selectedTicketId && (
+            <ChatModal ticketId={selectedTicketId} onClose={handleCloseModal} />
+          )}
         </>
       ) : (
         navigate("/login")
