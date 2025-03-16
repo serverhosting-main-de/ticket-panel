@@ -33,7 +33,7 @@ const io = new Server(server, {
 
 // --- MongoDB-Verbindung ---
 const mongoUrl = process.env.MONGO_URL;
-const dbName = "Serverhosting"; // Deine Datenbank
+const dbName = "Serverhosting";
 let db;
 
 async function connectToMongo() {
