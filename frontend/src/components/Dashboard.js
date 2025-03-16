@@ -222,24 +222,36 @@ const formatMessage = (text, mentions) => {
   return text;
 };
 
-// Füge diese Hilfsfunktion hinzu
 const formatDate = (dateString) => {
   if (!dateString) return "-";
 
-  const date = new Date(dateString);
+  // Versuche zuerst das Datum direkt zu parsen (für ISO-Format)
+  let date = new Date(dateString);
 
-  // Überprüfe ob das Datum gültig ist
+  // Wenn das Datum ungültig ist, versuche es mit dem deutschen Format
+  if (isNaN(date.getTime())) {
+    // Versuche das Datum im Format "DD.MM.YYYY HH:mm:ss" zu parsen
+    const [datePart, timePart] = dateString.split(" ");
+    const [day, month, year] = datePart.split(".");
+    const [hour, minute, second] = timePart.split(":");
+    date = new Date(year, month - 1, day, hour, minute, second);
+  }
+
+  // Wenn das Datum immer noch ungültig ist, gib "-" zurück
   if (isNaN(date.getTime())) return "-";
 
-  return date.toLocaleString("de-DE", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
+  return date
+    .toLocaleString("de-DE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+      timeZone: "UTC",
+    })
+    .replace(",", "");
 };
 
 function Dashboard() {
