@@ -226,6 +226,7 @@ function Dashboard() {
         const response = await fetchData(
           "https://backendtickets.wonder-craft.de/api/tickets"
         );
+        console.log("Tickets:", response.data);
         const filteredTickets = hasRole
           ? response.data || []
           : (response.data || []).filter(
