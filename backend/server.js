@@ -1,4 +1,5 @@
 require("dotenv").config();
+const fs = require("fs");
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
@@ -265,14 +266,63 @@ app.get("/api/tickets", authenticateToken, async (req, res) => {
   }
 });
 
+app.get("/api/tickets/:ticketId", authenticateToken, async (req, res) => {
+  const { ticketId } = req.params;
+
+  try {
+    // Überprüfe, ob das Ticket existiert
+    const ticket = await db
+      .collection("TicketSystem")
+      .findOne({ threadID: ticketId });
+
+    if (!ticket) {
+      return res.status(404).json({ error: "Ticket nicht gefunden." });
+    }
+
+    // Überprüfe Zugriffsberechtigung
+    if (!req.user.hasRole && ticket.creatorID !== req.user.userId) {
+      return res
+        .status(403)
+        .json({ error: "Keine Berechtigung für dieses Ticket." });
+    }
+
+    // HTML-Datei aus dem /tickets Ordner lesen
+    const htmlPath = path.join(__dirname, "tickets", `${ticketId}.html`);
+
+    try {
+      const htmlContent = await fs.promises.readFile(htmlPath, "utf8");
+      res.json({
+        threadID: ticket.threadID,
+        category: ticket.category,
+        creator: ticket.creator,
+        creatorID: ticket.creatorID,
+        status: ticket.status,
+        date: ticket.createdAt,
+        claimedBy: ticket.claimedBy || null,
+        closedBy: ticket.closedBy || null,
+        closedAt: ticket.closedAt || null,
+        htmlContent: htmlContent,
+      });
+    } catch (fileError) {
+      console.error("Fehler beim Lesen der HTML-Datei:", fileError);
+      res.status(404).json({ error: "Ticket-Transcript nicht gefunden." });
+    }
+  } catch (error) {
+    console.error("Fehler beim Abrufen des Tickets:", error);
+    res.status(500).json({ error: "Fehler beim Laden des Tickets." });
+  }
+});
+
+// Chat-Nachrichten aus Discord abrufen
 app.get("/api/tickets/:ticketId/chat", authenticateToken, async (req, res) => {
   const { ticketId } = req.params;
 
   try {
-    // Überprüfe, ob der Thread existiert
+    // Überprüfe, ob das Ticket existiert
     const ticket = await db
       .collection("TicketSystem")
       .findOne({ threadID: ticketId });
+
     if (!ticket) {
       return res.status(404).json({ error: "Ticket nicht gefunden." });
     }
@@ -284,73 +334,34 @@ app.get("/api/tickets/:ticketId/chat", authenticateToken, async (req, res) => {
         .json({ error: "Keine Berechtigung für dieses Ticket." });
     }
 
-    // Hole die Chat-Nachrichten aus der Datenbank
-    const messages = await db
-      .collection("TicketChats")
-      .find({ ticketId })
-      .sort({ timestamp: 1 })
-      .toArray();
+    try {
+      // Discord Channel abrufen
+      const guild = await client.guilds.fetch(process.env.GUILD_ID);
+      const channel = await guild.channels.fetch(ticketId);
 
-    const formattedMessages = messages.map((msg) => ({
-      sender: msg.sender,
-      text: msg.content,
-      timestamp: msg.timestamp,
-    }));
+      // Nachrichten aus dem Discord-Channel abrufen
+      const messages = await channel.messages.fetch({ limit: 100 });
 
-    res.json(formattedMessages);
-  } catch (error) {
-    console.error("Fehler beim Abrufen des Chat-Verlaufs:", error);
-    res.status(500).json({ error: "Fehler beim Laden des Chat-Verlaufs." });
-  }
-});
+      // Nachrichten formatieren
+      const formattedMessages = messages.reverse().map((msg) => ({
+        sender: msg.author.username,
+        text: msg.content,
+        timestamp: msg.createdAt,
+      }));
 
-// Neue Chat-Nachricht hinzufügen
-app.post("/api/tickets/:ticketId/chat", authenticateToken, async (req, res) => {
-  const { ticketId } = req.params;
-  const { text } = req.body;
-
-  try {
-    // Überprüfe, ob der Thread existiert
-    const ticket = await db
-      .collection("TicketSystem")
-      .findOne({ threadID: ticketId });
-    if (!ticket) {
-      return res.status(404).json({ error: "Ticket nicht gefunden." });
+      res.json(formattedMessages);
+    } catch (discordError) {
+      console.error(
+        "Fehler beim Abrufen der Discord-Nachrichten:",
+        discordError
+      );
+      res
+        .status(500)
+        .json({ error: "Fehler beim Laden der Chat-Nachrichten." });
     }
-
-    // Überprüfe Zugriffsberechtigung
-    if (!req.user.hasRole && ticket.creatorID !== req.user.userId) {
-      return res
-        .status(403)
-        .json({ error: "Keine Berechtigung für dieses Ticket." });
-    }
-
-    const newMessage = {
-      ticketId,
-      sender: req.user.username,
-      content: text,
-      timestamp: new Date(),
-      userId: req.user.userId,
-    };
-
-    // Speichere die Nachricht in der Datenbank
-    await db.collection("TicketChats").insertOne(newMessage);
-
-    // Benachrichtige alle verbundenen Clients über die neue Nachricht
-    io.emit(`chat-${ticketId}`, {
-      sender: newMessage.sender,
-      text: newMessage.content,
-      timestamp: newMessage.timestamp,
-    });
-
-    res.status(201).json({
-      sender: newMessage.sender,
-      text: newMessage.content,
-      timestamp: newMessage.timestamp,
-    });
   } catch (error) {
-    console.error("Fehler beim Speichern der Chat-Nachricht:", error);
-    res.status(500).json({ error: "Fehler beim Speichern der Nachricht." });
+    console.error("Fehler beim Abrufen des Tickets:", error);
+    res.status(500).json({ error: "Fehler beim Laden des Tickets." });
   }
 });
 
