@@ -238,6 +238,34 @@ function formatTimestamp(timestamp) {
   });
 }
 
+const formatMessage = (text) => {
+  if (!text) return "";
+
+  // Ersetze Rollen-Mentions
+  text = text.replace(/<@&(\d+)>/g, (match, roleId) => {
+    const roles = {
+      "1218665756217049088": "Support",
+      "1218660814186348744": "🛠️ Administrator",
+      // Füge hier weitere Rollen hinzu
+    };
+    return `@${roles[roleId] || "Rolle"}`;
+  });
+
+  // Ersetze User-Mentions
+  text = text.replace(/<@!?(\d+)>/g, (match, userId) => {
+    const users = {
+      341146999560601600: "Dominic",
+      // Füge hier weitere User hinzu
+    };
+    return `@${users[userId] || "User"}`;
+  });
+
+  // Ersetze Channel-Mentions
+  text = text.replace(/<#(\d+)>/g, "#channel");
+
+  return text;
+};
+
 function ChatModal({ ticketId, onClose }) {
   const [chatHistory, setChatHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -293,7 +321,9 @@ function ChatModal({ ticketId, onClose }) {
         )}
 
         {embed.description && (
-          <div className="embed-description">{embed.description}</div>
+          <div className="embed-description">
+            {formatMessage(embed.description)}
+          </div>
         )}
 
         {embed.fields && embed.fields.length > 0 && (
@@ -301,7 +331,7 @@ function ChatModal({ ticketId, onClose }) {
             {embed.fields.map((field, fieldIndex) => (
               <div key={fieldIndex} className="embed-field">
                 <div className="field-name">{field.name}</div>
-                <div className="field-value">{field.value}</div>
+                <div className="field-value">{formatMessage(field.value)}</div>
               </div>
             ))}
           </div>
@@ -371,7 +401,7 @@ function ChatModal({ ticketId, onClose }) {
                   </MessageTimestamp>
                 </MessageHeader>
                 <MessageContent>
-                  {message.text && <div>{message.text}</div>}
+                  {message.text && <div>{formatMessage(message.text)}</div>}
                   {message.embeds && message.embeds.length > 0 && (
                     <EmbedContainer>
                       {message.embeds.map((embed, embedIndex) =>

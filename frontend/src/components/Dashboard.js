@@ -197,6 +197,31 @@ const LogoutButton = styled(ActionButton)`
     background-color: #c0392b;
   }
 `;
+
+const formatMessage = (text, mentions) => {
+  if (!text || !mentions) return text;
+
+  // Ersetze Rollen-Mentions
+  mentions.roles.forEach((role) => {
+    text = text.replace(new RegExp(`<@&${role.id}>`, "g"), `@${role.name}`);
+  });
+
+  // Ersetze User-Mentions
+  mentions.users.forEach((user) => {
+    text = text.replace(new RegExp(`<@!?${user.id}>`, "g"), `@${user.name}`);
+  });
+
+  // Ersetze Channel-Mentions
+  mentions.channels.forEach((channel) => {
+    text = text.replace(
+      new RegExp(`<#${channel.id}>`, "g"),
+      `#${channel.name}`
+    );
+  });
+
+  return text;
+};
+
 function Dashboard() {
   const navigate = useNavigate();
   const [tickets, setTickets] = useState([]);
