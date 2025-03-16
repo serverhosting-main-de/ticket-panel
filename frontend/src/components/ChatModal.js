@@ -199,6 +199,13 @@ const EmbedImage = styled.img`
   border-radius: 8px;
   margin-top: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+
+  &:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
 `;
 
 const EmbedThumbnail = styled.img`
@@ -320,6 +327,13 @@ const AttachmentImage = styled.img`
   border-radius: 8px;
   margin-top: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+
+  &:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
 `;
 
 function formatTimestamp(timestamp) {
@@ -536,10 +550,16 @@ function ChatModal({ ticketId, onClose }) {
                       {message.attachments.map((attachment, index) => (
                         <div key={index}>
                           {attachment.contentType.startsWith("image/") ? (
-                            <AttachmentImage
-                              src={attachment.url}
-                              alt={attachment.name}
-                            />
+                            <a
+                              href={attachment.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <AttachmentImage
+                                src={attachment.url}
+                                alt={attachment.name}
+                              />
+                            </a>
                           ) : (
                             <Attachment>
                               <AttachmentIcon>📎</AttachmentIcon>
