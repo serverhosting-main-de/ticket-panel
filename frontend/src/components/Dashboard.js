@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import styled, { keyframes } from "styled-components";
 
-// Styled Components
+// Styled Components (unverändert)
 const fadeIn = keyframes`
   from {
     opacity: 0;
@@ -226,10 +226,11 @@ function Dashboard() {
         const response = await fetchData(
           "https://backendtickets.wonder-craft.de/api/tickets"
         );
-        console.log("Tickets:", response.data);
+        // Hier wird auf das `data`-Feld der API-Antwort zugegriffen
+        const ticketsData = response.data || [];
         const filteredTickets = hasRole
-          ? response.data || []
-          : (response.data || []).filter(
+          ? ticketsData
+          : ticketsData.filter(
               (ticket) => ticket.creatorID === userData.userId
             );
         setTickets(filteredTickets);
